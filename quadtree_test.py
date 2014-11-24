@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 width = 600
 height = 600
 boids=[]
-for i in xrange(1,100):
-    x = width*random.random()
-    y = height*random.random()
+for i in xrange(1,2000):
+    x = radius+(width-2*radius)*random.random()
+    y = radius+(height-2*radius)*random.random()
     boids.append(Quadtree.Boid(x,y,1))
 
 tree = Quadtree.Quadtree(0,Quadtree.Bounds(0,0,width,height))

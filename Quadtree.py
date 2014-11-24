@@ -5,7 +5,6 @@ class Boid: # Temporary boid class
         self.x = x
         self.y = y
         self.radius = radius
-        self.boundary = Bounds(x-radius,y-radius,2*radius,2*radius)
         self.direction = 0
 
 class Bounds:
@@ -37,8 +36,8 @@ class Quadtree:
         subheight = self.bounds.height/2
         x = self.bounds.x
         y = self.bounds.y
-        self.nodes[0] = Quadtree(self.level+1, Bounds(x, y, subwidth, subheight))
-        self.nodes[1] = Quadtree(self.level+1, Bounds(x+subwidth, y, subwidth, subheight))
+        self.nodes[0] = Quadtree(self.level+1, Bounds(x+subwidth, y, subwidth, subheight))
+        self.nodes[1] = Quadtree(self.level+1, Bounds(x, y, subwidth, subheight))
         self.nodes[2] = Quadtree(self.level+1, Bounds(x, y+subheight, subwidth, subheight))
         self.nodes[3] = Quadtree(self.level+1, Bounds(x+subwidth, y+subheight, subwidth, subheight))
         
@@ -94,14 +93,14 @@ class Quadtree:
                     self.nodes[index].insert(obj)
                     self.objs.remove(obj)
         
-    def retrieve(self, returned_objs, obj):
+    def retrieve(self, returnedobjs, obj):
         index = self.getindex(obj)
         if index != -1 and not self.nodes[0] is None:
-            self.nodes[index].retrieve(returned_objs, obj)
+            self.nodes[index].retrieve(returnedobjs, obj)
             
-        returned_objs.extend(self.objs)
+        returnedobjs.extend(self.objs)
             
-        return returned_objs
+        return returnedobjs
         
     def inspect(self):
         print('Level:')
