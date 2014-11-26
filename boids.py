@@ -65,6 +65,8 @@ class Prey(Boid):
         """
         Compute input sensors values to neural network
         Returns an array of sensor values of shape n x 2
+
+        Do something different from Prey.sensors!
         """
         return np.random.random(10).reshape(5,2)
 
@@ -78,3 +80,17 @@ class Prey(Boid):
             return False
         else:
             return True
+
+class Predator(Boid):
+    def __init__(self, worldsize):
+        Boid.__init__(self, worldsize) # call the Boid constructor, too
+
+    @property
+    def sensors(self):
+        """
+        Compute input sensors values to neural network
+        Returns an array of sensor values of shape n x 2
+
+        Do something different from Prey.sensors!
+        """
+        return np.random.random(10).reshape(6,2)
