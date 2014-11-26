@@ -37,6 +37,10 @@ Property functions
 """
     def __init__(self, worldsize):
         self.position = np.random.random(2)*worldsize
+        self.velocity = np.random.random(2) # TODO: decide range
+        self.stamina = 1.0 # in range [0, 1] ?
+        self.eating = False
+        self.age = 0
 
     @property
     def sensors(self):
@@ -52,6 +56,19 @@ Property functions
         """
         return self.sensors[0,:] # use neural work instead!
 
+    def update_velocity(self, dt):
+        self.velocity += self.acceleration * dt
+
+    def update_position(self, dt):
+        self.update_velocity(dt)
+        self.position += self.velocity * dt
+
+    def mutate(self):
+        """
+        mutate neural network weights
+        """
+        return
+
     @property
     def killed(self):
         return False
@@ -59,6 +76,8 @@ Property functions
 class Prey(Boid):
     def __init__(self, worldsize):
         Boid.__init__(self, worldsize) # call the Boid constructor, too
+
+        self.weights = np.random.random(5) # neural net weights
 
     @property
     def sensors(self):
@@ -84,6 +103,8 @@ class Prey(Boid):
 class Predator(Boid):
     def __init__(self, worldsize):
         Boid.__init__(self, worldsize) # call the Boid constructor, too
+
+        self.weights = np.random.random(6) # neural net weights
 
     @property
     def sensors(self):
