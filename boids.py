@@ -12,12 +12,9 @@ class Boid:
 Variables
 - Position, 1x2 array
 - Velocity, 1x2 array
-- Acceleration, 1x2 array
 - Network weights, 1xn array
-- Collided, boolean
 - Stamina, double
 - Eating, boolean
-- Killed, boolean
 - Region/tree?
 - Age, integer
 - Maximum speed, double
@@ -29,9 +26,9 @@ Class functions
 - 
 
 Property functions
-- Compute sensor values, 2xn array
-- Update acceleration
-- Update killed (Check if living)
+- sensors, nx2 array
+- acceleration, 1x2 array
+- killed (Check if living), boolean
 - 
 
 """
