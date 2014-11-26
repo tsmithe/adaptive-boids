@@ -28,7 +28,7 @@ while True:
     
     # Compute statistics and dump data to disk
 
-    # Update positions and stamina
+    # Update positions (and corresponding regions) and stamina
 
     # ...
     pass
