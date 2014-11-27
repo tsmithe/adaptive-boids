@@ -8,36 +8,38 @@ Created on Wed Nov 26 16:00:03 2014
 import numpy as np
 
 class Boid:
-"""
-Variables
-- Position, 1x2 array
-- Velocity, 1x2 array
-- Network weights, 1xn array
-- Stamina, double
-- Eating, boolean
-- Region/tree?
-- Age, integer
-- Maximum speed, double
-
-Class functions
-- Update position
-- Update velocity
-- Mutate network (for offspring)
-- 
-
-Property functions
-- sensors, nx2 array
-- acceleration, 1x2 array
-- killed (Check if living), boolean
-- 
-
-"""
+    """
+    Variables
+    - Position, 1x2 array
+    - Velocity, 1x2 array
+    - Network weights, 1xn array
+    - Stamina, double
+    - Eating, boolean
+    - Region/tree?
+    - Age, integer
+    - Maximum speed, double
+    
+    Class functions
+    - Update position
+    - Update velocity
+    - Mutate network (for offspring)
+    - 
+    
+    Property functions
+    - sensors, nx2 array
+    - acceleration, 1x2 array
+    - killed (Check if living), boolean
+    - 
+    
+    """
     def __init__(self, worldsize):
         self.position = np.random.random(2)*worldsize
         self.velocity = np.random.random(2) # TODO: decide range
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
         self.age = 0
+        self.creeprange = 0.1 # how large?
+        self.maximumspeed = 1 #how large?
 
     @property
     def sensors(self):
@@ -51,10 +53,19 @@ Property functions
         Doesn't need to be specialised by the subclass, since the computation
           is effectively the same
         """
+        
         return self.sensors[0,:] # use neural work instead!
 
     def update_velocity(self, dt):
+        """
+        Update velocity by calling acceleration property.
+        If speed is higher than maximumspeed, then decrease speed to 
+        maximumspeed but keep direction.
+        """
         self.velocity += self.acceleration * dt
+        currentspeed = np.sqrt(np.dot(self.velocity,self.velocity))
+        if (currentspeed > self.maximumspeed):
+            self.velocity *= self.maximumspeed/currentspeed
 
     def update_position(self, dt):
         self.update_velocity(dt)
@@ -62,9 +73,16 @@ Property functions
 
     def mutate(self):
         """
-        mutate neural network weights
+        Mutate neural network weights.
+        Implemented as a linearly distributed creep mutation.
+        Returns a network with weights mutated with linear creep within
+        [-creeprange,creeprange] from the original weights.
+        No upper or lower bounds.
         """
-        return
+        network_size = np.size(self.weights)
+        mutated_weights = (self.weights.copy() - 
+            2*self.creeprange*(np.random.random(network_size)-0.5))
+        return mutated_weights
 
     @property
     def killed(self):
@@ -74,7 +92,8 @@ class Prey(Boid):
     def __init__(self, worldsize):
         Boid.__init__(self, worldsize) # call the Boid constructor, too
 
-        self.weights = np.random.random(5) # neural net weights
+        self.numberofweights = 5
+        self.weights = np.random.random(self.numberofweights) # neural net weights
 
     @property
     def sensors(self):
@@ -84,12 +103,13 @@ class Prey(Boid):
 
         Do something different from Prey.sensors!
         """
-        return np.random.random(10).reshape(5,2)
+        return np.random.random(
+            2*self.numberofweights).reshape(self.numberofweights,2)
 
     @property
     def killed(self):
         """
-        return a boolean value describing whether boid is dead
+        Return a boolean value describing whether boid is dead
         """
         death_probability = 1 - self.stamina
         if np.random.random() < death_probability:
@@ -101,7 +121,8 @@ class Predator(Boid):
     def __init__(self, worldsize):
         Boid.__init__(self, worldsize) # call the Boid constructor, too
 
-        self.weights = np.random.random(6) # neural net weights
+        self.numberofweights = 6
+        self.weights = np.random.random(self.numberofweights) # neural net weights
 
     @property
     def sensors(self):
@@ -111,4 +132,5 @@ class Predator(Boid):
 
         Do something different from Prey.sensors!
         """
-        return np.random.random(10).reshape(6,2)
+        return np.random.random(
+            2*self.numberofweights).reshape(self.numberofweights,2)
