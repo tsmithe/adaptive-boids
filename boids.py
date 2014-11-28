@@ -32,15 +32,16 @@ class Boid:
     - 
     
     """
-    def __init__(self, worldsize):
-        self.position = np.random.random(2)*worldsize
+    def __init__(self, world_size):
+        self.position = np.random.random(2)*world_size
         self.velocity = np.random.random(2) # TODO: decide range
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
         self.age = 0
-        self.creeprange = 0.1 # how large?
-        self.maximumspeed = 1 # how large?
-        self.viewangle = np.pi/2 # how large? Should it differ between prey/predators
+        self.creep_range = 0.1 # how large?
+
+
+
 
     @property
     def sensors(self):
@@ -60,13 +61,13 @@ class Boid:
     def update_velocity(self, dt):
         """
         Update velocity by calling acceleration property.
-        If speed is higher than maximumspeed, then decrease speed to 
-        maximumspeed but keep direction.
+        If speed is higher than maximum_speed, then decrease speed to 
+        maximum_speed but keep direction.
         """
         self.velocity += self.acceleration * dt
-        currentspeed = np.sqrt(np.dot(self.velocity,self.velocity))
-        if (currentspeed > self.maximumspeed):
-            self.velocity *= self.maximumspeed/currentspeed
+        current_speed = np.sqrt(np.dot(self.velocity,self.velocity))
+        if (current_speed > self.maximum_speed):
+            self.velocity *= self.maximum_speed/current_speed
 
     def update_position(self, dt):
         self.update_velocity(dt)
@@ -77,59 +78,83 @@ class Boid:
         Mutate neural network weights.
         Implemented as a linearly distributed creep mutation.
         Returns a network with weights mutated with linear creep within
-        [-creeprange,creeprange] from the original weights.
+        [-creep_range,creep_range] from the original weights.
         No upper or lower bounds.
         """
         network_size = np.size(self.weights)
         mutated_weights = (self.weights.copy() - 
-            2*self.creeprange*(np.random.random(network_size)-0.5))
+            2*self.creep_range*(np.random.random(network_size)-0.5))
         return mutated_weights
         
-    def visible_neighbours(self, neighbourpositionarray):
+    def find_neighbours(self, neighbour_tree, radius):
+        """
+        Input the k-d tree containing position of boids, obstacles or regions
+        and the radius of the lookup.
+        Returns the indices of the objects, in the k-d tree, with centers that
+        are within radius from the center.
+        
+        Input radius can be perception-limit, too-close-limit or other.
+        Use to calculate sensor values and check for collisions.
+        """
+        neighbour_indices = neighbour_tree.query_ball_point(
+            self.position,radius)
+        return neighbour_indices
+        
+    def visible_neighbours(self, neighbour_position_array):
         """
         Takes array of nearest-neighbour position as input.
-        Checks if each nearest-neighbour is within the viewangle of the boid.
-        Returns indexes, of the neighbourpositionarray, that the boid can see.
+        Checks if each nearest-neighbour is within the perception_angle of the boid.
+        Returns positions of the objects that the boid can see.
         
-        TODO: 
-        - Include if statement that checks if angle is less than 
-        viewingangle.
-        - Create 1xm array that will contain the indices of the neighbours within
-        sight. How do we create this array when we don't know how many 
-        visible neighbours there will be?
-        - Fill the index array and return
+        Use find_neighbours(tree,r) to generate neighbour_position_array.
+        Use to calculate sensor values.
         """
-        numberofneighbours = np.size(neighbourpositionarray)/2;
-        for i in np.arange(numberofneighbours):
-            relativeposition = neighbourpositionarray[0,:] - self.position
-            neighbourdistance = np.sqrt(np.dot(relativeposition,relativeposition))
-            currentspeed = np.sqrt(np.dot(self.velocity,self.velocity))
-            angle = np.arccos(np.dot(relativeposition,self.velocity)/
-                (neighbourdistance*currentspeed))
-        return
+        number_or_neighbours = np.size(neighbour_position_array)/2;
+        visible_neighbours_indices = []
+        for i in np.arange(number_or_neighbours):
+            relative_position = neighbour_position_array[i,:] - self.position
+            neighbour_distance = np.sqrt(
+                np.dot(relative_position,relative_position))
+            current_speed = np.sqrt(np.dot(self.velocity, self.velocity))
+            angle = np.arccos(np.dot(relative_position, self.velocity)/
+                (neighbour_distance*current_speed))
+            if (np.abs(angle) < self.perception_angle):
+                visible_neighbours_indices.append(i)
+        return neighbour_position_array[visible_neighbours_indices,:]
         
-
     @property
     def killed(self):
         return False
 
 class Prey(Boid):
-    def __init__(self, worldsize):
-        Boid.__init__(self, worldsize) # call the Boid constructor, too
+    def __init__(self, world_size):
+        Boid.__init__(self, world_size) # call the Boid constructor, too
 
-        self.numberofweights = 5
-        self.weights = np.random.random(self.numberofweights) # neural net weights
+        self.number_of_weights = 5
+        self.weights = np.random.random(self.number_of_weights) # neural net weights
+        self.maximum_speed = 1 # How large?
+        self.boid_radius = 1 # How large?
+        self.perception_length = 2 # How large=
+        self.perception_angle = np.pi/2 # how large? Should it differ between prey/predators.
 
     @property
-    def sensors(self):
+    def sensors(self, prey_positions, prey_tree, predator_positions, 
+                predator_tree):
         """
         Compute input sensors values to neural network
         Returns an array of sensor values of shape n x 2
 
         Do something different from Prey.sensors!
         """
+        prey_neighbour_positions = prey_positions[self.find_neighbours(
+            prey_tree, self.perception_length),:]
+        visible_prey_positions = self.visible_neighbours(
+            prey_neighbour_positions)
+        number_of_visible_prey = np.size(visible_prey_positions[:,1])
+        prey_position_sensor = (np.sum(visible_prey_positions,axis=0)/
+            number_of_visible_prey)
         return np.random.random(
-            2*self.numberofweights).reshape(self.numberofweights,2)
+            2*self.number_of_weights).reshape(self.number_of_weights,2)
 
     @property
     def killed(self):
@@ -143,11 +168,14 @@ class Prey(Boid):
             return True
 
 class Predator(Boid):
-    def __init__(self, worldsize):
-        Boid.__init__(self, worldsize) # call the Boid constructor, too
+    def __init__(self, world_size):
+        Boid.__init__(self, world_size) # call the Boid constructor, too
 
-        self.numberofweights = 6
-        self.weights = np.random.random(self.numberofweights) # neural net weights
+        self.number_of_weights = 6
+        self.weights = np.random.random(self.number_of_weights) # neural net weights
+        self.maximum_speed = 1 # how large?
+        self.boid_radius = 2 # How large?
+        self.perception_angle = np.pi/2 # how large? Should it differ between prey/predators.
 
     @property
     def sensors(self):
@@ -158,4 +186,4 @@ class Predator(Boid):
         Do something different from Prey.sensors!
         """
         return np.random.random(
-            2*self.numberofweights).reshape(self.numberofweights,2)
+            2*self.number_of_weights).reshape(self.number_of_weights,2)
