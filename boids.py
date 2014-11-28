@@ -23,7 +23,7 @@ class Boid:
     - Update position
     - Update velocity
     - Mutate network (for offspring)
-    - 
+    - Visible neighbours
     
     Property functions
     - sensors, nx2 array
@@ -39,7 +39,8 @@ class Boid:
         self.eating = False
         self.age = 0
         self.creeprange = 0.1 # how large?
-        self.maximumspeed = 1 #how large?
+        self.maximumspeed = 1 # how large?
+        self.viewangle = np.pi/2 # how large? Should it differ between prey/predators
 
     @property
     def sensors(self):
@@ -83,6 +84,30 @@ class Boid:
         mutated_weights = (self.weights.copy() - 
             2*self.creeprange*(np.random.random(network_size)-0.5))
         return mutated_weights
+        
+    def visible_neighbours(self, neighbourpositionarray):
+        """
+        Takes array of nearest-neighbour position as input.
+        Checks if each nearest-neighbour is within the viewangle of the boid.
+        Returns indexes, of the neighbourpositionarray, that the boid can see.
+        
+        TODO: 
+        - Include if statement that checks if angle is less than 
+        viewingangle.
+        - Create 1xm array that will contain the indices of the neighbours within
+        sight. How do we create this array when we don't know how many 
+        visible neighbours there will be?
+        - Fill the index array and return
+        """
+        numberofneighbours = np.size(neighbourpositionarray)/2;
+        for i in np.arange(numberofneighbours):
+            relativeposition = neighbourpositionarray[0,:] - self.position
+            neighbourdistance = np.sqrt(np.dot(relativeposition,relativeposition))
+            currentspeed = np.sqrt(np.dot(self.velocity,self.velocity))
+            angle = np.arccos(np.dot(relativeposition,self.velocity)/
+                (neighbourdistance*currentspeed))
+        return
+        
 
     @property
     def killed(self):
