@@ -86,7 +86,7 @@ class Boid:
             2*self.creep_range*(np.random.random(network_size)-0.5))
         return mutated_weights
         
-    def find_neighbours(self, neighbour_tree, radius):
+    def find_neighbours(self, neighbour_cKDTree, radius):
         """
         Input the k-d tree containing position of boids, obstacles or regions
         and the radius of the lookup.
@@ -96,7 +96,7 @@ class Boid:
         Input radius can be perception-limit, too-close-limit or other.
         Use to calculate sensor values and check for collisions.
         """
-        neighbour_indices = neighbour_tree.query_ball_point(
+        neighbour_indices = neighbour_cKDTree.query_ball_point(
             self.position,radius)
         return neighbour_indices
         
@@ -113,12 +113,10 @@ class Boid:
         visible_neighbours_indices = []
         for i in np.arange(number_or_neighbours):
             relative_position = neighbour_position_array[i,:] - self.position
-            neighbour_distance = np.sqrt(
-                np.dot(relative_position,relative_position))
-            current_speed = np.sqrt(np.dot(self.velocity, self.velocity))
-            angle = np.arccos(np.dot(relative_position, self.velocity)/
-                (neighbour_distance*current_speed))
-            if (np.abs(angle) < self.perception_angle):
+            angle = np.arccos(np.dot(relative_position,self.velocity)/(
+                np.sqrt(np.dot(relative_position,relative_position))*
+                np.sqrt(np.dot(self.velocity,self.velocity))))
+            if (~np.isnan(angle) & (np.abs(angle) < self.perception_angle)):
                 visible_neighbours_indices.append(i)
         return neighbour_position_array[visible_neighbours_indices,:]
         
@@ -134,25 +132,27 @@ class Prey(Boid):
         self.weights = np.random.random(self.number_of_weights) # neural net weights
         self.maximum_speed = 1 # How large?
         self.boid_radius = 1 # How large?
-        self.perception_length = 2 # How large=
+        self.perception_length = 2 # How large?
         self.perception_angle = np.pi/2 # how large? Should it differ between prey/predators.
 
     @property
-    def sensors(self, prey_positions, prey_tree, predator_positions, 
-                predator_tree):
+    def sensors(self, prey_tree, predator_tree):
         """
         Compute input sensors values to neural network
         Returns an array of sensor values of shape n x 2
+        
+        This function currently assumes prey_tree and predator_tree are of
+        the class cKDTree, NOT KDTree!
 
         Do something different from Prey.sensors!
         """
-        prey_neighbour_positions = prey_positions[self.find_neighbours(
-            prey_tree, self.perception_length),:]
+        prey_neighbour_positions = prey_tree.data[
+            self.find_neighbours(prey_tree,self.perception_length),:]
         visible_prey_positions = self.visible_neighbours(
             prey_neighbour_positions)
-        number_of_visible_prey = np.size(visible_prey_positions[:,1])
-        prey_position_sensor = (np.sum(visible_prey_positions,axis=0)/
-            number_of_visible_prey)
+        number_of_visible_prey = np.size(visible_prey_positions)/2
+        prey_position_sensor = (
+            np.sum(visible_prey_positions,axis=0)/number_of_visible_prey)
         return np.random.random(
             2*self.number_of_weights).reshape(self.number_of_weights,2)
 
