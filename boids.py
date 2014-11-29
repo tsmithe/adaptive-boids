@@ -7,6 +7,9 @@ Created on Wed Nov 26 16:00:03 2014
 
 import numpy as np
 
+SEED = 0
+np.random.seed(SEED)
+
 class Boid:
     """
     Variables
@@ -39,6 +42,7 @@ class Boid:
         self.eating = False
         self.age = 0
         self.creep_range = 0.1 # how large?
+
 
 
 
@@ -86,39 +90,41 @@ class Boid:
             2*self.creep_range*(np.random.random(network_size)-0.5))
         return mutated_weights
         
-    def find_neighbours(self, neighbour_cKDTree, radius):
+    def find_neighbours(self, tree, radius):
         """
-        Input the k-d tree containing position of boids, obstacles or regions
+        Takes cKDTree as input and finds all neighbours within radius.
+        Input the cKDTree containing position of boids, obstacles or regions
         and the radius of the lookup.
-        Returns the indices of the objects, in the k-d tree, with centers that
-        are within radius from the center.
+        Returns the indices, in the cKDTree, of the objects with centers that
+        are within radius from the center, including itself.
         
-        Input radius can be perception-limit, too-close-limit or other.
+        Input radius can be perception_limit, too-close-limit or other.
         Use to calculate sensor values and check for collisions.
         """
-        neighbour_indices = neighbour_cKDTree.query_ball_point(
-            self.position,radius)
+        neighbour_indices = tree.query_ball_point(self.position, radius)
         return neighbour_indices
         
-    def visible_neighbours(self, neighbour_position_array):
+    def find_visible_neighbours(self, tree):
         """
-        Takes array of nearest-neighbour position as input.
-        Checks if each nearest-neighbour is within the perception_angle of the boid.
-        Returns positions of the objects that the boid can see.
+        Takes a cKDTree as input and finds all neighbours within a circle 
+        of radius perception_length.
+        Checks if each neighbour is within the perception_angle.
+        Returns indices of the visible objects.
         
-        Use find_neighbours(tree,r) to generate neighbour_position_array.
-        Use to calculate sensor values.
+        Calls self.find_neighbours(tree, perception_length) to find all
+        neighbour indices. Removes any object located at the exact same
+        position as the search center, e.g. a prey won't find itself.
         """
-        number_or_neighbours = np.size(neighbour_position_array)/2;
-        visible_neighbours_indices = []
-        for i in np.arange(number_or_neighbours):
-            relative_position = neighbour_position_array[i,:] - self.position
+        neighbour_index = self.find_neighbours(tree, self.perception_length)
+        visible_neighbours_index = []
+        for i in neighbour_index:
+            relative_position = tree.data[i,:] - self.position
             angle = np.arccos(np.dot(relative_position,self.velocity)/(
                 np.sqrt(np.dot(relative_position,relative_position))*
                 np.sqrt(np.dot(self.velocity,self.velocity))))
             if (~np.isnan(angle) & (np.abs(angle) < self.perception_angle)):
-                visible_neighbours_indices.append(i)
-        return neighbour_position_array[visible_neighbours_indices,:]
+                visible_neighbours_index.append(i)
+        return visible_neighbours_index
         
     @property
     def killed(self):
@@ -134,9 +140,12 @@ class Prey(Boid):
         self.boid_radius = 1 # How large?
         self.perception_length = 2 # How large?
         self.perception_angle = np.pi/2 # how large? Should it differ between prey/predators.
+        self.prey_tree = [] # Should this be initialized as an empty cKDTree?
+        self.prey_flock_velocities = []
 
     @property
-    def sensors(self, prey_tree, predator_tree):
+    def sensors(self):
+#    def sensors(self, prey_tree, predator_tree):
         """
         Compute input sensors values to neural network
         Returns an array of sensor values of shape n x 2
@@ -146,13 +155,21 @@ class Prey(Boid):
 
         Do something different from Prey.sensors!
         """
-        prey_neighbour_positions = prey_tree.data[
-            self.find_neighbours(prey_tree,self.perception_length),:]
-        visible_prey_positions = self.visible_neighbours(
-            prey_neighbour_positions)
-        number_of_visible_prey = np.size(visible_prey_positions)/2
+        # Find visible prey
+        visible_prey_index = self.find_visible_neighbours(self.prey_tree)
+        number_of_visible_prey = np.size(visible_prey_index)
+        
+        # Calculate prey-prey position sensor value.
+        visible_prey_positions = self.prey_tree.data[visible_prey_index,:]
         prey_position_sensor = (
-            np.sum(visible_prey_positions,axis=0)/number_of_visible_prey)
+            np.sum(visible_prey_positions, axis=0)/number_of_visible_prey)
+            
+        # Calculate prey-prey velocity sensor value.
+        visible_prey_velocities = (
+            self.prey_flock_velocities[visible_prey_index,:])
+        prey_velocity_sensor = (
+            np.sum(visible_prey_velocities, axis=0)/number_of_visible_prey)            
+        
         return np.random.random(
             2*self.number_of_weights).reshape(self.number_of_weights,2)
 
