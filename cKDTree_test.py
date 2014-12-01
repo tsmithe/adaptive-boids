@@ -23,11 +23,12 @@ number_of_boids = 60
 for i in np.arange(number_of_boids):
     prey.append(Prey(world_size))
     
-# Create array of prey positions and create cKDTree.
+# Create array of prey positions and velocities and create cKDTree.
 prey_positions = np.array([p.position for p in prey])
 prey_velocities = np.array([p.velocity for p in prey])
 
 prey_tree = sci.spatial.cKDTree(prey_positions)
+
 
 # Update prey_tree variable in each prey (can it be done more efficiently?)
 for p in prey:
@@ -35,7 +36,8 @@ for p in prey:
     p.prey_flock_velocities = prey_velocities
     
 neighbours = prey[0].find_neighbours(prey[0].prey_tree, prey[0].perception_length)
-visible_neighbours = prey[0].find_visible_neighbours(prey[0].prey_tree)
+visible_neighbours = prey[0].find_visible_neighbours(
+    prey[0].prey_tree, prey[0].perception_length)
 print('Indices of all neighbours within perception_length')
 print(neighbours)
 print('Indices of visible neighbours within boid perception_length')
@@ -59,7 +61,8 @@ for p in prey:
     p.prey_flock_velocities = prey_velocities
 
 neighbours = prey[0].find_neighbours(prey[0].prey_tree, prey[0].perception_length)
-visible_neighbours = prey[0].find_visible_neighbours(prey[0].prey_tree)
+visible_neighbours = prey[0].find_visible_neighbours(
+    prey[0].prey_tree, prey[0].perception_length)
 neighbour_positions = prey[0].prey_tree.data[neighbours,:]
 print('Indices of all neighbours after time step')
 print(neighbours)
@@ -67,7 +70,6 @@ print('Indices of visible neighbours after time step')
 print(visible_neighbours)
 print('Positions of all visible neighbours after time step')
 print(prey[0].prey_tree.data[visible_neighbours,:])
-
 
 """
 Test whether indices in the prey_tree points to the same value as that index

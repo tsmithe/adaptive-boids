@@ -42,6 +42,7 @@ class Boid:
         self.eating = False
         self.age = 0
         self.creep_range = 0.1 # how large?
+        self.mutation_probability = 0.5
 
 
 
@@ -60,12 +61,12 @@ class Boid:
           is effectively the same
         """
         
-        return self.sensors[0,:] # use neural work instead!
+        return self.sensors/self.boid_weight # use neural work instead!
 
     def update_velocity(self, dt):
         """
         Update velocity by calling acceleration property.
-        If speed is higher than maximum_speed, then decrease speed to 
+        If speed is higher than maximum_speed, decrease speed to 
         maximum_speed but keep direction.
         """
         self.velocity += self.acceleration * dt
@@ -79,15 +80,19 @@ class Boid:
 
     def mutate(self):
         """
-        Mutate neural network weights.
+        Mutate neural network weights. 
+        Each weight is mutated with probability mutation_probability.
         Implemented as a linearly distributed creep mutation.
         Returns a network with weights mutated with linear creep within
         [-creep_range,creep_range] from the original weights.
         No upper or lower bounds.
         """
         network_size = np.size(self.weights)
-        mutated_weights = (self.weights.copy() - 
-            2*self.creep_range*(np.random.random(network_size)-0.5))
+        mutated_weights = self.weights.copy()
+        for i in np.arange(network_size):
+            if (np.random.random() < self.mutation_probability):
+                mutated_weights[i] = (mutated_weights[i] - 
+                    2*self.creep_range*(np.random.random()-0.5))            
         return mutated_weights
         
     def find_neighbours(self, tree, radius):
@@ -104,10 +109,10 @@ class Boid:
         neighbour_indices = tree.query_ball_point(self.position, radius)
         return neighbour_indices
         
-    def find_visible_neighbours(self, tree):
+    def find_visible_neighbours(self, tree, radius):
         """
         Takes a cKDTree as input and finds all neighbours within a circle 
-        of radius perception_length.
+        of radius "radius".
         Checks if each neighbour is within the perception_angle.
         Returns indices of the visible objects.
         
@@ -115,7 +120,7 @@ class Boid:
         neighbour indices. Removes any object located at the exact same
         position as the search center, e.g. a prey won't find itself.
         """
-        neighbour_index = self.find_neighbours(tree, self.perception_length)
+        neighbour_index = self.find_neighbours(tree, radius)
         visible_neighbours_index = []
         for i in neighbour_index:
             relative_position = tree.data[i,:] - self.position
@@ -139,13 +144,16 @@ class Prey(Boid):
         self.maximum_speed = 1 # How large?
         self.boid_radius = 1 # How large?
         self.perception_length = 2 # How large?
-        self.perception_angle = np.pi/2 # how large? Should it differ between prey/predators.
+        self.perception_angle = np.pi/2 # How large? Should it differ between prey/predators.
+        self.too_close_radius = 1 # How large?
         self.prey_tree = [] # Should this be initialized as an empty cKDTree?
         self.prey_flock_velocities = []
+        self.predator_tree = []
+        self.feeding_area_position = np.array([])
+        self.boid_weight = 1 # How large?
 
     @property
     def sensors(self):
-#    def sensors(self, prey_tree, predator_tree):
         """
         Compute input sensors values to neural network
         Returns an array of sensor values of shape n x 2
@@ -155,23 +163,66 @@ class Prey(Boid):
 
         Do something different from Prey.sensors!
         """
-        # Find visible prey
-        visible_prey_index = self.find_visible_neighbours(self.prey_tree)
+        sensors = np.zeros([self.number_of_weights,2])
+        force = np.zeros(2)
+        
+        # Find visible prey.
+        visible_prey_index = self.find_visible_neighbours(
+            self.prey_tree, self.perception_length)
         number_of_visible_prey = np.size(visible_prey_index)
-        
-        # Calculate prey-prey position sensor value.
-        visible_prey_positions = self.prey_tree.data[visible_prey_index,:]
-        prey_position_sensor = (
-            np.sum(visible_prey_positions, axis=0)/number_of_visible_prey)
+
+        if (number_of_visible_prey > 0):        
+            # Calculate fellow prey position sensor value.
+            relative_prey_positions = (self.prey_tree.data[visible_prey_index,:] - 
+                self.position)
+            sensors[0,:] = (
+                np.sum(relative_prey_positions, axis=0)/number_of_visible_prey)
             
-        # Calculate prey-prey velocity sensor value.
-        visible_prey_velocities = (
-            self.prey_flock_velocities[visible_prey_index,:])
-        prey_velocity_sensor = (
-            np.sum(visible_prey_velocities, axis=0)/number_of_visible_prey)            
+            # Calculate fellow prey velocity sensor value.
+            relative_prey_velocities = (
+                self.prey_flock_velocities[visible_prey_index,:] - self.velocity)
+            sensors[1,:] = (
+                np.sum(relative_prey_velocities, axis=0)/number_of_visible_prey)
+            
+        # Find "too close" prey.
+        too_close_index = self.find_visible_neighbours(
+            self.prey_tree, self.too_close_radius)
+        number_of_too_close = np.size(too_close_index)
+            
+        if (number_of_too_close > 0):
+            # Calculate "too close" sensor value.
+            relative_too_close_positions = np.array(
+                self.prey_tree.data[too_close_index,:] - self.position)
+            too_close_distance = np.abs(relative_too_close_positions)
+            too_close_direction = relative_too_close_positions/too_close_distance
+            sensors[2,:] = (
+                np.sum(((self.too_close_radius/too_close_distance) - 1)*
+                too_close_direction, axis=0)/number_of_too_close)
+
+        # Find visible predators.
+        visible_predator_index = self.find_visible_neighbours(
+            self.predator_tree, self.perception_length)
+        number_of_visible_predators = np.size(visible_predator_index)
+
+        if (number_of_visible_predators):
+            # Calculate predator sensor.
+            relative_predator_positions = np.array(
+                self.predator_tree.data[visible_predator_index,:] - self.position)
+            distance_to_predator = np.abs(relative_predator_positions)
+            direction_to_predator = (
+                relative_predator_positions/distance_to_predator)
+            sensors[3,:] = (
+                np.sum(((self.perception_length/distance_to_predator) - 1)*
+                direction_to_predator, axis=0)/number_of_visible_predators)
+            
+        # Feeding area(s) sensor.
+        relative_feeding_position = (self.feeding_area_position-self.position)
+        sensors[4,:] = relative_feeding_position
+         
+        for i in np.arange(self.number_of_weights):
+            force += self.weights[i]*sensors[i,:]
         
-        return np.random.random(
-            2*self.number_of_weights).reshape(self.number_of_weights,2)
+        return force
 
     @property
     def killed(self):
