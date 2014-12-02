@@ -59,6 +59,15 @@ class Ecosystem:
         for b in self.predators + self.prey:
             b.age += self.dt
 
+    def roulette_selection(weights):
+        total = 0
+        winner = 0
+        for i, w in enumerate(weights):
+            total += w
+            if random.random() * total < w:
+                winner = i
+        return winner
+
     def kill_prey(self):
         # Kill prey
         for b in self.prey:
@@ -67,10 +76,15 @@ class Ecosystem:
                 
         # Replace dead prey
         dead_prey = self.num_prey-len(self.prey)
-        for i in range(dead_prey):
-            self.prey.append(Prey(self))
-
-    
+        if dead_prey > 0:
+            fitness_values = [1/b.age for b in self.prey]
+            parent = roulette_selection(fitness_values)
+            child = Prey(self)
+            child.weights = parent.weights
+            child.weights = child.mutate()
+            
+            for i in range(dead_prey):
+                self.prey.append(child)
 
 class Boid:
 
@@ -169,6 +183,7 @@ class Prey(Boid):
         self.number_of_weights = 5
         self.weights = np.random.random(self.number_of_weights) # neural net weights
         self.maximum_speed = 1 # How large?
+        self.minimum_speed = 0.1 # How small?
         self.perception_length = 2 # How large?
         self.perception_angle = np.pi/2 # How large? Should it differ between prey/predators.
         self.too_close_radius = 1 # How large?
@@ -177,6 +192,18 @@ class Prey(Boid):
         self.predator_tree = ecosystem.predator_tree
         self.boid_radius = 1 # How large?
         self.boid_weight = 1 # How large?
+
+    def update_velocity(self):
+        collided_with = ecosystem.prey_tree.query_ball_point(self.position,
+        ecosystem.prey_radius+ecosystem.predator_radius)
+        
+        if len(collided_with) > 0:
+            self.velocity = self.minimum_speed
+        else:
+            self.velocity += self.acceleration * dt
+            
+        if self.velocity > self.maximum_speed:
+            self.velocity = self.maximum_speed
 
     @property
     def sensors(self):
@@ -251,11 +278,11 @@ class Prey(Boid):
         return force
 
     @property
-    def killed(self, predator_tree):
+    def killed(self):
         """
         return a boolean value describing whether boid is dead
         """
-        collided_with = predator_tree.query_ball_point(self.position,
+        collided_with = ecosystem.predator_tree.query_ball_point(self.position,
         ecosystem.prey_radius+ecosystem.predator_radius)
         
         if len(collided_with) > 0:
