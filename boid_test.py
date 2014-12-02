@@ -18,8 +18,8 @@ predators = []
 
 dt = 1
 world_size = 10
-number_of_prey = 600
-number_of_predators = 2
+number_of_prey = 200
+number_of_predators = 20
 
 # Create prey boids.
 for i in np.arange(number_of_prey):
@@ -47,9 +47,16 @@ for p in prey:
     p.predator_tree = predator_tree
     p.feeding_area_position = feeding_area_position
     
+for p in predators:
+    p.prey_tree = prey_tree
+    p.prey_flock_velocities = prey_velocities
+    p.predator_tree = predator_tree
+    p.predator_velocities = predator_velocities
+    
 print(prey[1].position)    
 prey[1].update_position(dt)
 print(prey[1].position)    
 print(prey[1].weights)
 print(prey[1].mutate())
+
     
