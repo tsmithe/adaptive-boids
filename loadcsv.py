@@ -9,11 +9,11 @@ class loadcsv:
         with open(file_path, newline='') as f:
             reader = csv.reader(f)
             for row in reader:
-                row_data = self.partition(row,dimensions)
+                row_data = list(self.partition(row,dimensions))
                 data.append(row_data)
         
         return data
         
     def partition(self, values, n):
-        for i in xrange(0, len(values), n):
+        for i in range(0, len(values), n):
             yield values[i:i+n]
