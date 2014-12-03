@@ -30,23 +30,27 @@ class Ecosystem:
         for i in range(self.num_predators):
             self.predators.append(Predator(self))
 
-        self.update_positions()
-        self.update_velocities()
+        self.update_position_data()
+        self.update_velocity_data()
 
-    def update_positions(self):
+    def update_position_data(self):
         self.prey_positions = np.array([p.position for p in self.prey])
         self.predator_positions = np.array([p.position for p in self.predators])
         self.prey_tree = cKDTree(self.prey_positions)
         self.predator_tree = cKDTree(self.predator_positions)
+
+    def update_boid_positions(self):
         for b in self.predators + self.prey:
             b.update_position(self.dt)
         #self.all_positions = np.concatenate(prey_positions, predator_positions)
 
-    def update_velocities(self):
-        for b in self.predators + self.prey:
-            b.update_velocity(self.dt)
+    def update_velocity_data(self):
         self.prey_velocities = np.array([p.velocity for p in self.prey])
         self.predator_velocities = np.array([p.velocity for p in self.predators])
+
+    def update_boid_velocities(self):
+        for b in self.predators + self.prey:
+            b.update_velocity(self.dt)
         
     def update_stamina(self):
         for b in self.prey:
@@ -191,7 +195,6 @@ class Prey(Boid):
         self.perception_length = 2 # How large?
         self.perception_angle = np.pi/2 # How large? Should it differ between prey/predators.
         self.too_close_radius = 1 # How large?
-        self.prey_flock_velocities = []
         self.boid_radius = 1 # How large?
         self.boid_weight = 1 # How large?
 
@@ -235,7 +238,7 @@ class Prey(Boid):
             
             # Calculate fellow prey velocity sensor value.
             relative_prey_velocities = (
-                self.prey_flock_velocities[visible_prey_index,:] - self.velocity)
+                self.ecosystem.prey_velocities[visible_prey_index,:] - self.velocity)
             sensors[1,:] = (
                 np.sum(relative_prey_velocities, axis=0)/number_of_visible_prey)
             
@@ -306,7 +309,6 @@ class Predator(Boid):
         self.perception_length = 1 # How large?
         self.perception_angle = np.pi/2 # how large? Should it differ between prey/predators.
         self.too_close_radius = 1 # How large?
-        self.prey_flock_velocities = []
         self.predator_velocities = []
         self.boid_radius = 2 # How large?
         self.boid_weight = 1 # How large?
@@ -331,9 +333,8 @@ class Predator(Boid):
                 self.ecosystem.prey_tree.data[visible_prey_index,:] - self.position)
             prey_distance = np.linalg.norm(relative_prey_positions, axis=1)
             target_prey_index = visible_prey_index[np.argmin(prey_distance)]
-            # !!! TODO
-            #sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index]
-            #sensors[1,:] = self.prey_flock_velocities[target_prey_index]
+            sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index]
+            sensors[1,:] = self.ecosystem.prey_velocities[target_prey_index]
         
         # Find visible predators.
         visible_predator_index = self.find_visible_neighbours(
@@ -341,12 +342,11 @@ class Predator(Boid):
         number_of_visible_predators = np.size(visible_predator_index)
         
         # Fellow predator position and velocity sensor values.
-        # !!! TODO
-        if False: #(number_of_visible_predators > 0):
+        if (number_of_visible_predators > 0):
             relative_predator_positions = np.array(
                 self.ecosystem.predator_tree.data[visible_predator_index,:]-self.position)
             relative_predator_velocities = np.array(
-                self.predator_velocities[visible_predator_index,:]-self.velocity)
+                self.ecosystem.predator_velocities[visible_predator_index]-self.velocity)
             if (number_of_visible_predators == 1):
                 sensors[2,:] = relative_predator_positions
                 sensors[3,:] = relative_predator_velocities

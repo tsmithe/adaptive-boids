@@ -19,7 +19,7 @@ WORLD_SIZE = 10
 NUM_PREY = 200
 NUM_PREDATORS = 20
 #TODO: feeding area params?
-FEEDING_AREA_POSITION = (2, 2)
+FEEDING_AREA_POSITION = (50, 50)
 
 np.random.seed(SEED)
 
@@ -68,8 +68,10 @@ while t < RUN_TIME:
     t += DT
 
     # Update positions (and corresponding regions) and stamina
-    ecosystem.update_velocities()
-    ecosystem.update_positions()
+    ecosystem.update_boid_velocities()
+    ecosystem.update_velocity_data()
+    ecosystem.update_boid_positions()
+    ecosystem.update_position_data()
 
     # ...
 
