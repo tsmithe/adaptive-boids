@@ -19,8 +19,8 @@ reader = csv.reader(open('prey_positions.csv'))
 
 fig, ax = plt.subplots()
 graph = ax.scatter(-2, -2)
-ax.set_xlim(-1.5, 10001.5)
-ax.set_ylim(-1.5, 10001.5)
+ax.set_xlim(-1.5, 101.5)
+ax.set_ylim(-1.5, 101.5)
 frame_data = []
 
 for row in reader:
@@ -34,7 +34,7 @@ for row in reader:
 
 ani = animation.FuncAnimation(fig, animate, len(frame_data),
                               fargs=(graph, ax, frame_data),
-                              interval=100)#,
-                              #blit=True, repeat=True)
+                              interval=100,
+                              blit=True, repeat=True)
 plt.show()
 
