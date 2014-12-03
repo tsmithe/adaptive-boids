@@ -34,7 +34,7 @@ for row in reader:
 
 ani = animation.FuncAnimation(fig, animate, len(frame_data),
                               fargs=(graph, ax, frame_data),
-                              interval=100,
-                              blit=True, repeat=True)
+                              interval=100)#,
+                              #blit=True, repeat=True)
 plt.show()
 
