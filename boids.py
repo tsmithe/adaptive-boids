@@ -17,6 +17,7 @@ class Ecosystem:
         self.num_prey = num_prey
         self.num_predators = num_predators
         self.feeding_area_position = np.asarray(feeding_area_position)
+        self.feeding_area_radius = 5
 
         self.prey_radius = 5 # TODO
         self.predator_radius = 5 # TODO
@@ -54,7 +55,8 @@ class Ecosystem:
         
     def update_stamina(self):
         for b in self.prey:
-            if np.linalg.norm(b.position-self.feeding_area_position):
+            if (np.linalg.norm(b.position-self.feeding_area_position)<
+                self.feeding_area_radius):
                 b.eating = True
                 if b.stamina < 1:
                     b.stamina += 0.01*self.dt
@@ -98,8 +100,6 @@ class Boid:
 
     def __init__(self, ecosystem):
         self.ecosystem = ecosystem
-        self.position = np.random.random(2)*ecosystem.world_size
-        self.velocity = np.random.random(2) # TODO: decide range
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
         self.age = 0
@@ -189,7 +189,6 @@ class Prey(Boid):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too
         
         self.number_of_weights = 5
-        self.weights = np.random.random(self.number_of_weights) # neural net weights
         self.maximum_speed = 1 # How large?
         self.minimum_speed = 0.1 # How small?
         self.perception_length = 2 # How large?
@@ -197,6 +196,11 @@ class Prey(Boid):
         self.too_close_radius = 1 # How large?
         self.boid_radius = 1 # How large?
         self.boid_weight = 1 # How large?
+        self.life_span = 100 # how large?
+
+        self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights        
+        self.position = ecosystem.world_size*(2*np.random.random(2)-1)
+        self.velocity = self.maximum_speed*(2*np.random.random(2)-1) # TODO: decide range
 
     def update_velocity(self, dt):
         collided_with = self.ecosystem.prey_tree.query_ball_point(self.position,
@@ -222,7 +226,6 @@ class Prey(Boid):
         Do something different from Prey.sensors!
         """
         sensors = np.zeros([self.number_of_weights,2])
-        force = np.zeros(2)
         
         # Find visible prey.
         visible_prey_index = self.find_visible_neighbours(
@@ -233,14 +236,18 @@ class Prey(Boid):
             # Calculate fellow prey position sensor value.
             relative_prey_positions = (self.ecosystem.prey_tree.data[visible_prey_index,:] - 
                 self.position)
-            sensors[0,:] = (
-                np.sum(relative_prey_positions, axis=0)/number_of_visible_prey)
-            
             # Calculate fellow prey velocity sensor value.
             relative_prey_velocities = (
-                self.ecosystem.prey_velocities[visible_prey_index,:] - self.velocity)
-            sensors[1,:] = (
-                np.sum(relative_prey_velocities, axis=0)/number_of_visible_prey)
+                self.prey_flock_velocities[visible_prey_index,:]-self.velocity)
+            if (number_of_visible_prey == 1):
+                sensors[0,:] = relative_prey_positions
+                sensors[1,:] = relative_prey_velocities
+            else:
+                sensors[0,:] = (np.sum(relative_prey_positions, axis=0)/
+                    number_of_visible_prey)
+                sensors[1,:] = (np.sum(relative_prey_velocities, axis=0)/
+                    number_of_visible_prey)
+
             
         # Find "too close" prey.
         too_close_index = self.find_visible_neighbours(
@@ -251,67 +258,75 @@ class Prey(Boid):
             # Calculate "too close" sensor value.
             relative_too_close_positions = np.array(
                 self.ecosystem.prey_tree.data[too_close_index,:] - self.position)
-            too_close_distance = np.abs(relative_too_close_positions)
-            too_close_direction = relative_too_close_positions/too_close_distance
-            sensors[2,:] = (
-                np.sum(((self.too_close_radius/too_close_distance) - 1)*
-                too_close_direction, axis=0)/number_of_too_close)
+            too_close_distance = np.linalg.norm(relative_too_close_positions, axis=1)
+            too_close_direction = relative_too_close_positions/too_close_distance[:,np.newaxis]
+            sensors[2,:] = (np.dot(((self.too_close_radius/too_close_distance) - 1),
+                too_close_direction)/number_of_too_close)
 
         # Find visible predators.
         visible_predator_index = self.find_visible_neighbours(
             self.ecosystem.predator_tree, self.perception_length)
         number_of_visible_predators = np.size(visible_predator_index)
 
-        if (number_of_visible_predators):
+        if (number_of_visible_predators > 0):
             # Calculate predator sensor.
             relative_predator_positions = np.array(
                 self.ecosystem.predator_tree.data[visible_predator_index,:] - self.position)
-            distance_to_predator = np.abs(relative_predator_positions)
+            distance_to_predator = np.linalg.norm(relative_predator_positions,axis=1)
             direction_to_predator = (
-                relative_predator_positions/distance_to_predator)
-            sensors[3,:] = (
-                np.sum(((self.perception_length/distance_to_predator) - 1)*
-                direction_to_predator, axis=0)/number_of_visible_predators)
+                relative_predator_positions/distance_to_predator[:,np.newaxis])
+            sensors[3,:] = (np.dot(((self.perception_length/distance_to_predator) - 1),
+                direction_to_predator)/number_of_visible_predators)
             
-        # Feeding area(s) sensor.
+        # Feeding area sensor, assuming only one area and perfect vision.
         relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
         sensors[4,:] = relative_feeding_position
          
-        for i in np.arange(self.number_of_weights):
-            force += self.weights[i]*sensors[i,:]
+        force = np.dot(self.weights,sensors)
         
         return force
 
     @property
     def killed(self):
         """
-        return a boolean value describing whether boid is dead
+        Return a boolean value describing whether boid is dead.
+        Prey can die of collision with predator and old age (for now).
         """
         collided_with = self.ecosystem.predator_tree.query_ball_point(self.position,
         self.ecosystem.prey_radius+self.ecosystem.predator_radius)
         
         if len(collided_with) > 0:
             return True
-        
-        death_probability = 1 - self.stamina
+        elif (self.age > self.life_span):
+            return True
+        else:
+            return False
+        """
+        death_probability = (1 - self.stamina)
         if np.random.random() < death_probability:
             return False
         else:
             return True
+        """
 
 class Predator(Boid):
-    def __init__(self, worldsize):
-        Boid.__init__(self, worldsize) # call the Boid constructor, too
+    def __init__(self, ecosystem):
+        Boid.__init__(self, ecosystem) # call the Boid constructor, too
 
         self.number_of_weights = 5
-        self.weights = np.random.random(self.number_of_weights) # neural net weights
         self.maximum_speed = 1 # how large?
+        self.minimum_speed = 0.1
         self.perception_length = 1 # How large?
         self.perception_angle = np.pi/2 # how large? Should it differ between prey/predators.
         self.too_close_radius = 1 # How large?
         self.predator_velocities = []
         self.boid_radius = 2 # How large?
         self.boid_weight = 1 # How large?
+        self.life_span = 100 # How large?
+        
+        self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights
+        self.position = ecosystem.world_size*(2*np.random.random(2)-1)
+        self.velocity = self.maximum_speed*(2*np.random.random(2)-1)
 
     @property
     def sensors(self):
@@ -333,8 +348,10 @@ class Predator(Boid):
                 self.ecosystem.prey_tree.data[visible_prey_index,:] - self.position)
             prey_distance = np.linalg.norm(relative_prey_positions, axis=1)
             target_prey_index = visible_prey_index[np.argmin(prey_distance)]
-            sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index]
-            sensors[1,:] = self.ecosystem.prey_velocities[target_prey_index]
+            # !!! TODO
+            #sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index,:]
+            #sensors[1,:] = self.prey_flock_velocities[target_prey_index,:]
+
         
         # Find visible predators.
         visible_predator_index = self.find_visible_neighbours(
@@ -376,3 +393,15 @@ class Predator(Boid):
         force = np.dot(self.weights,sensors)
         
         return force
+        
+    @property
+    def killed(self):
+        """
+        Return a boolean value describing whether boid is dead.
+        Predators can only dies of old age (for now).
+        """
+
+        if (self.age > self.life_span):
+            return True
+        else:
+            return False
