@@ -11,17 +11,17 @@ import random
 
 class Ecosystem:
     def __init__(self, world_size, num_prey, num_predators,
-                 feeding_area_position, dt):
+                 prey_radius, predator_radius,
+                 feeding_area_radius, feeding_area_position, dt):
         self.dt = dt
         self.world_size = world_size
         self.num_prey = num_prey
         self.num_predators = num_predators
         self.feeding_area_position = np.asarray(feeding_area_position)
-        self.feeding_area_radius = 5
-        self.boundary_radius = 50
+        self.feeding_area_radius = feeding_area_radius
 
-        self.prey_radius = 5 # TODO
-        self.predator_radius = 5 # TODO
+        self.prey_radius = prey_radius
+        self.predator_radius = predator_radius
         
         self.prey = []
         self.predators = []
@@ -181,7 +181,7 @@ class Boid:
             angle = np.abs(np.arccos(np.dot(relative_position,self.velocity)/(
                 np.sqrt(np.dot(relative_position,relative_position))*
                 np.sqrt(np.dot(self.velocity,self.velocity)))))
-            if (~np.isnan(angle) & (np.abs(angle) < self.perception_angle)):
+            if (not np.isnan(angle) and (np.abs(angle) < self.perception_angle)):
                 visible_neighbours_index.append(i)
         return visible_neighbours_index
         

@@ -14,32 +14,36 @@ from statistics import StatisticsHelper
 SEED = 0
 DT = 1
 RUN_TIME = 10000
-DUMP_STATS_INTERVAL = 10
+DUMP_STATS_INTERVAL = 1
+
 WORLD_SIZE = 10
 NUM_PREY = 200
 NUM_PREDATORS = 20
-#TODO: feeding area params?
+PREY_RADIUS = 5
+PREDATOR_RADIUS = 5
+FEEDING_AREA_RADIUS = 5
 FEEDING_AREA_POSITION = (50, 50)
 
 np.random.seed(SEED)
 
 ecosystem = Ecosystem(WORLD_SIZE, NUM_PREY, NUM_PREDATORS,
-                      FEEDING_AREA_POSITION, DT)
+                      PREY_RADIUS, PREDATOR_RADIUS,
+                      FEEDING_AREA_RADIUS, FEEDING_AREA_POSITION, DT)
 
-def export_stats(ecosystem, append=True):
-    prey_statistics = StatisticsHelper(ecosystem.prey, ecosystem.prey_tree,
-                                       'prey_', append,
+prey_statistics = StatisticsHelper('prey_', False,
+                                   True, True, True)
+predator_statistics = StatisticsHelper('predator_', False,
                                        True, True, True)
-    predator_statistics = StatisticsHelper(ecosystem.predators,
-                                           ecosystem.predator_tree,
-                                           'predator_', append,
-                                           True, True, True)
+
+def export_stats(ecosystem):
+    prey_statistics.update_data(ecosystem.prey, ecosystem.prey_tree)
     prey_statistics.export()
+    predator_statistics.update_data(ecosystem.predators,
+                                    ecosystem.predator_tree)
     predator_statistics.export()
     
 
 t = 0
-first_dump = True
 while t < RUN_TIME:
     sys.stdout.write("\rt = %.1f" % t)
     sys.stdout.flush()
@@ -61,8 +65,7 @@ while t < RUN_TIME:
     
     # Compute statistics and dump data to disk
     if not t % DUMP_STATS_INTERVAL:
-        export_stats(ecosystem, not first_dump)
-        first_dump = False
+        export_stats(ecosystem)
 
     # Escape criterion: if avg life span not increasing for large no. of runs
 
