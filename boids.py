@@ -21,7 +21,9 @@ class Ecosystem:
         self.feeding_area_radius = feeding_area_radius
 
         self.prey_radius = prey_radius
+        self.prey_maximum_speed = 5
         self.predator_radius = predator_radius
+        self.predator_maximum_speed = 10
         
         self.prey = []
         self.predators = []
@@ -82,9 +84,16 @@ class Ecosystem:
     def kill_prey(self):
         # Kill prey
         for b in self.prey:
-            if b.killed == True:
+            if (b.killed == True):
                 self.prey.remove(b)
+                fitness_values = [1/(b.age+0.01) for b in self.prey]
+                parent = self.roulette_selection(fitness_values)
+                child = Prey(self)
+                child.weights = self.prey[parent].weights
+                child.weights = child.mutate()
+                self.prey.append(child)
                 
+"""            
         # Replace dead prey
         dead_prey = self.num_prey-len(self.prey)
         if dead_prey > 0:
@@ -96,7 +105,7 @@ class Ecosystem:
             
             for i in range(dead_prey):
                 self.prey.append(child)
-
+"""
 class Boid:
 
     def __init__(self, ecosystem):
@@ -106,7 +115,7 @@ class Boid:
         self.age = 0
         self.creep_range = 1
         self.mutation_probability = 0.5
-        self.position = self.initialize_position()
+
 
     @property
     def sensors(self):
@@ -141,6 +150,15 @@ class Boid:
         else:
             radius = radius_temporary*self.ecosystem.world_radius
         return np.array([radius*np.cos(angle), radius*np.sin(angle)])
+        
+    def initialize_velocity(self):
+        angle = 2*np.pi*np.random.random()
+        magnitude_temporary = np.random.random() + np.random.random()
+        if (magnitude_temporary > 1):
+            magnitude = (2-magnitude_temporary)*self.maximum_speed
+        else:
+            magnitude = magnitude_temporary*self.maximum_speed
+        return np.array([magnitude*np.cos(angle), magnitude*np.sin(angle)])
 
     def mutate(self):
         """
@@ -188,9 +206,10 @@ class Boid:
         visible_neighbours_index = []
         for i in neighbour_index:
             relative_position = tree.data[i,:] - self.position
-            angle = np.abs(np.arccos(np.dot(relative_position,self.velocity)/(
-                np.sqrt(np.dot(relative_position,relative_position))*
-                np.sqrt(np.dot(self.velocity,self.velocity)))))
+            angle = np.arccos(np.dot(relative_position,self.velocity)/(
+                np.linalg.norm(relative_position)*np.linalg.norm(self.velocity)))                
+#                np.sqrt(np.dot(relative_position,relative_position))*
+#                np.sqrt(np.dot(self.velocity,self.velocity)))))
             if (not np.isnan(angle) and (np.abs(angle) < self.perception_angle)):
                 visible_neighbours_index.append(i)
         return visible_neighbours_index
@@ -204,16 +223,17 @@ class Prey(Boid):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too
         
         self.number_of_weights = 5
-        self.maximum_speed = 1 # How large?
+        self.maximum_speed = self.ecosystem.prey_maximum_speed # How large?
         self.minimum_speed = 0.1 # How small?
-        self.perception_length = 2 # How large?
+        self.perception_length = 4*self.ecosystem.prey_radius # How large?
         self.perception_angle = np.pi/2 # How large? Should it differ between prey/predators.
-        self.too_close_radius = 1 # How large?
+        self.too_close_radius = 2*self.ecosystem.prey_radius # How large?
         self.boid_weight = 1 # How large?
         self.life_span = 200 # how large?
 
         self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights        
-        self.velocity = (self.maximum_speed/np.sqrt(2))*(2*np.random.random(2)-1) # TODO: decide range
+        self.position = self.initialize_position()        
+        self.velocity = self.initialize_velocity()
 
     def update_velocity(self, dt):
         """
@@ -258,7 +278,7 @@ class Prey(Boid):
                 self.position)
             # Calculate fellow prey velocity sensor value.
             relative_prey_velocities = (
-                self.prey_velocities[visible_prey_index,:]-self.velocity)
+                self.ecosystem.prey_velocities[visible_prey_index,:]-self.velocity)
             if (number_of_visible_prey == 1):
                 sensors[0,:] = relative_prey_positions
                 sensors[1,:] = relative_prey_velocities
@@ -344,17 +364,18 @@ class Predator(Boid):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too
 
         self.number_of_weights = 5
-        self.maximum_speed = 1 # how large?
+        self.maximum_speed = self.ecosystem.predator_maximum_speed # how large?
         self.minimum_speed = 0.1 # How small?
-        self.perception_length = 5 # How large?
+        self.perception_length = 4*self.ecosystem.predator_radius # How large?
         self.perception_angle = np.pi*3/2 # how large? Should it differ between prey/predators.
-        self.too_close_radius = 3 # How large?
-        self.predator_velocities = []
+        self.too_close_radius = 2*self.ecosystem.predator_radius # How large?
+#        self.predator_velocities = []
         self.boid_weight = 1 # How large?
         self.life_span = 200 # How large?
         
         self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights
-        self.velocity = (self.maximum_speed/np.sqrt(2))*(2*np.random.random(2)-1)
+        self.position = self.initialize_position()        
+        self.velocity = self.initialize_velocity()
 
     def update_velocity(self, dt):
         """
