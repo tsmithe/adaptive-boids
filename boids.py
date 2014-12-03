@@ -143,7 +143,7 @@ class Boid:
         """
         if np.linalg.norm(self.position) > self.ecosystem.world_radius:
             return self.sensors/self.boid_weight - self.position *np.exp( # A suitable scaling parameter is needed
-                (np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position)
+                100*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position)
         else:
             return self.sensors/self.boid_weight # use neural work instead!
 
@@ -151,7 +151,7 @@ class Boid:
         self.velocity += self.acceleration * dt
 
     def update_position(self, dt):
-        self.update_velocity(dt)
+#        self.update_velocity(dt)
         self.position += self.velocity * dt
         
     def initialize_position(self):
