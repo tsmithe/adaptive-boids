@@ -10,11 +10,11 @@ from scipy.spatial import cKDTree
 import random
 
 class Ecosystem:
-    def __init__(self, world_size, num_prey, num_predators,
+    def __init__(self, world_radius, num_prey, num_predators,
                  prey_radius, predator_radius,
                  feeding_area_radius, feeding_area_position, dt):
         self.dt = dt
-        self.world_size = world_size
+        self.world_radius = world_radius
         self.num_prey = num_prey
         self.num_predators = num_predators
         self.feeding_area_position = np.asarray(feeding_area_position)
@@ -106,6 +106,7 @@ class Boid:
         self.age = 0
         self.creep_range = 1
         self.mutation_probability = 0.5
+        self.position = self.initialize_position()
 
     @property
     def sensors(self):
@@ -119,9 +120,9 @@ class Boid:
         Doesn't need to be specialised by the subclass, since the computation
           is effectively the same
         """
-        if np.linalg.norm(self.position) > self.ecosystem.world_size:
+        if np.linalg.norm(self.position) > self.ecosystem.world_radius:
             return self.sensors/self.boid_weight - self.position *np.exp( # A suitable scaling parameter is needed
-                (np.linalg.norm(self.position)-self.ecosystem.world_size))/np.linalg.norm(self.position)
+                (np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position)
         else:
             return self.sensors/self.boid_weight # use neural work instead!
 
@@ -131,6 +132,15 @@ class Boid:
     def update_position(self, dt):
         self.update_velocity(dt)
         self.position += self.velocity * dt
+        
+    def initialize_position(self):
+        angle = 2*np.pi*np.random.random()
+        radius_temporary = np.random.random() + np.random.random()
+        if (radius_temporary > 1):
+            radius = (2-radius_temporary)*self.ecosystem.world_radius
+        else:
+            radius = radius_temporary*self.ecosystem.world_radius
+        return np.array([radius*np.cos(angle), radius*np.sin(angle)])
 
     def mutate(self):
         """
@@ -203,7 +213,6 @@ class Prey(Boid):
         self.life_span = 200 # how large?
 
         self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights        
-        self.position = ecosystem.world_size*(2*np.random.random(2)-1)
         self.velocity = (self.maximum_speed/np.sqrt(2))*(2*np.random.random(2)-1) # TODO: decide range
 
     def update_velocity(self, dt):
@@ -299,8 +308,9 @@ class Prey(Boid):
                 direction_to_predator)/number_of_visible_predators)
             
         # Feeding area sensor, assuming only one area and perfect vision.
-        relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
-        sensors[4,:] = np.zeros(2)#relative_feeding_position
+#        relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
+#        sensors[4,:] = relative_feeding_position
+        sensors[4,:] = np.zeros(2)
          
         force = np.dot(self.weights,sensors)
         
@@ -344,7 +354,6 @@ class Predator(Boid):
         self.life_span = 200 # How large?
         
         self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights
-        self.position = ecosystem.world_size*(2*np.random.random(2)-1)
         self.velocity = (self.maximum_speed/np.sqrt(2))*(2*np.random.random(2)-1)
 
     def update_velocity(self, dt):
