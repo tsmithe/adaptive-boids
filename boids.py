@@ -18,7 +18,7 @@ class Ecosystem:
         self.num_predators = num_predators
         self.feeding_area_position = np.asarray(feeding_area_position)
         self.feeding_area_radius = 5
-        self.boundary_radius = 50
+        self.world_size = world_size
 
         self.prey_radius = 5 # TODO
         self.predator_radius = 5 # TODO
@@ -119,9 +119,9 @@ class Boid:
         Doesn't need to be specialised by the subclass, since the computation
           is effectively the same
         """
-        if np.linalg.norm(self.position) > self.ecosystem.boundary_radius:
+        if np.linalg.norm(self.position) > self.ecosystem.world_size:
             return self.sensors/self.boid_weight - self.position *np.exp( # A suitable scaling parameter is needed
-                (np.linalg.norm(self.position)-self.ecosystem.boundary_radius))/np.linalg.norm(self.position)
+                (np.linalg.norm(self.position)-self.ecosystem.world_size))/np.linalg.norm(self.position)
         else:
             return self.sensors/self.boid_weight # use neural work instead!
 
@@ -300,7 +300,7 @@ class Prey(Boid):
             
         # Feeding area sensor, assuming only one area and perfect vision.
         relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
-        sensors[4,:] = relative_feeding_position
+        sensors[4,:] = np.zeros(2)#relative_feeding_position
          
         force = np.dot(self.weights,sensors)
         
