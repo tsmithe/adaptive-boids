@@ -16,7 +16,7 @@ DT = 1
 RUN_TIME = 10000
 DUMP_STATS_INTERVAL = 2
 
-WORLD_SIZE = 100
+WORLD_RADIUS = 100
 NUM_PREY = 200
 NUM_PREDATORS = 20
 PREY_RADIUS = 5
@@ -35,7 +35,7 @@ def export_stats(prey_statistics, predator_statistics, ecosystem):
 def main():    
     np.random.seed(SEED)
 
-    ecosystem = Ecosystem(WORLD_SIZE, NUM_PREY, NUM_PREDATORS,
+    ecosystem = Ecosystem(WORLD_RADIUS, NUM_PREY, NUM_PREDATORS,
                           PREY_RADIUS, PREDATOR_RADIUS,
                           FEEDING_AREA_RADIUS, FEEDING_AREA_POSITION, DT)
 
