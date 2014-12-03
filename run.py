@@ -50,10 +50,13 @@ while t < RUN_TIME:
 
     # Feeding
     #  -- those boids marked as feeding receive a linear(?) increase in stamina
+    ecosystem.update_stamina()
 
     # Kill and spawn
     #  -- check for boids marked as dead, and respawn them
     #  -- update lifespan values for living boids
+    ecosystem.kill_prey()
+    ecosystem.update_age()
     
     # Compute statistics and dump data to disk
     if not t % DUMP_STATS_INTERVAL:

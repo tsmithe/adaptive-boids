@@ -69,8 +69,8 @@ class StatisticsHelper:
     
     @property
     def directions(self):
-        return np.ndarray.flatten(np.array(
-            [b.velocity/np.linalg.norm(b.velocity) for b in self.boids]))
+        return np.ndarray.flatten(np.array(#np.arctan(b.velocity) <- does not work
+            [0 for b in self.boids]))
     
     @property
     def average_nearest_neighbour(self):

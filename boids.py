@@ -7,6 +7,7 @@ Created on Wed Nov 26 16:00:03 2014
 
 import numpy as np
 from scipy.spatial import cKDTree
+import random
 
 class Ecosystem:
     def __init__(self, world_size, num_prey, num_predators,
@@ -44,12 +45,13 @@ class Ecosystem:
     def update_velocities(self):
         for b in self.predators + self.prey:
             b.update_velocity(self.dt)
+        print([p.velocity for p in self.prey])
         self.prey_velocities = np.array([p.velocity for p in self.prey])
         self.predator_velocities = np.array([p.velocity for p in self.predators])
         
     def update_stamina(self):
         for b in self.prey:
-            if np.linglag.norm(b.position-self.feeding_area_position):
+            if np.linalg.norm(b.position-self.feeding_area_position):
                 b.eating = True
                 if b.stamina < 1:
                     b.stamina += 0.01*self.dt
@@ -62,7 +64,7 @@ class Ecosystem:
         for b in self.predators + self.prey:
             b.age += self.dt
 
-    def roulette_selection(weights):
+    def roulette_selection(self,weights):
         total = 0
         winner = 0
         for i, w in enumerate(weights):
@@ -80,10 +82,10 @@ class Ecosystem:
         # Replace dead prey
         dead_prey = self.num_prey-len(self.prey)
         if dead_prey > 0:
-            fitness_values = [1/b.age for b in self.prey]
-            parent = roulette_selection(fitness_values)
+            fitness_values = [1/(b.age+0.01) for b in self.prey]
+            parent = self.roulette_selection(fitness_values)
             child = Prey(self)
-            child.weights = parent.weights
+            child.weights = self.prey[parent].weights
             child.weights = child.mutate()
             
             for i in range(dead_prey):
@@ -203,8 +205,8 @@ class Prey(Boid):
         else:
             self.velocity += self.acceleration * dt
             
-        if self.velocity > self.maximum_speed:
-            self.velocity = self.maximum_speed
+        if np.linalg.norm(self.velocity) > self.maximum_speed:
+            self.velocity = self.velocity*(self.maximum_speed/np.linalg.norm(self.velocity))
 
     @property
     def sensors(self):
@@ -270,7 +272,7 @@ class Prey(Boid):
                 direction_to_predator, axis=0)/number_of_visible_predators)
             
         # Feeding area(s) sensor.
-        relative_feeding_position = (self.feeding_area_position-self.position)
+        relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
         sensors[4,:] = relative_feeding_position
          
         for i in np.arange(self.number_of_weights):
@@ -284,7 +286,7 @@ class Prey(Boid):
         return a boolean value describing whether boid is dead
         """
         collided_with = self.ecosystem.predator_tree.query_ball_point(self.position,
-        self.ecosystem.prey_radius+ecosystem.predator_radius)
+        self.ecosystem.prey_radius+self.ecosystem.predator_radius)
         
         if len(collided_with) > 0:
             return True
