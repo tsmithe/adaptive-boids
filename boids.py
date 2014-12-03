@@ -45,7 +45,6 @@ class Ecosystem:
     def update_velocities(self):
         for b in self.predators + self.prey:
             b.update_velocity(self.dt)
-        print([p.velocity for p in self.prey])
         self.prey_velocities = np.array([p.velocity for p in self.prey])
         self.predator_velocities = np.array([p.velocity for p in self.predators])
         
@@ -201,7 +200,7 @@ class Prey(Boid):
         self.ecosystem.prey_radius+self.ecosystem.predator_radius)
         
         if len(collided_with) > 0:
-            self.velocity = self.minimum_speed
+            self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
         else:
             self.velocity += self.acceleration * dt
             
