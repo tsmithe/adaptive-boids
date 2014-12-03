@@ -22,8 +22,21 @@ class Ecosystem:
 
         self.prey_radius = prey_radius
         self.prey_maximum_speed = 5
+        self.prey_minimum_speed = 0.1
+        self.prey_perception_length = 4*self.prey_radius
+        self.prey_perception_angle = np.pi/2
+        self.prey_too_close_radius = 2*self.prey_radius
+        self.prey_weight = 1
+        self.prey_lifespan = 500
+
         self.predator_radius = predator_radius
         self.predator_maximum_speed = 10
+        self.predator_minimum_speed = 0.1
+        self.predator_perception_length = 4*self.predator_radius
+        self.predator_perception_angle = np.pi
+        self.predator_too_close_radius = 2*self.predator_radius
+        self.predator_weight = 2
+        self.predator_lifespan = 1000
         
         self.prey = []
         self.predators = []
@@ -93,19 +106,18 @@ class Ecosystem:
                 child.weights = child.mutate()
                 self.prey.append(child)
                 
-"""            
-        # Replace dead prey
-        dead_prey = self.num_prey-len(self.prey)
-        if dead_prey > 0:
-            fitness_values = [1/(b.age+0.01) for b in self.prey]
-            parent = self.roulette_selection(fitness_values)
-            child = Prey(self)
-            child.weights = self.prey[parent].weights
-            child.weights = child.mutate()
-            
-            for i in range(dead_prey):
-                self.prey.append(child)
-"""
+    def kill_predators(self):
+        # Kill predators
+        for b in self.predators:
+            if (b.killed == True):
+                self. predators.remove(b)
+                fitness_values = [1/(b.age+0.01) for b in self.predators]
+                parent = self.roulette_selection(fitness_values)
+                child = Predator(self)
+                child.weights = self.predators[parent].weights
+                child.weights = child.mutate()
+                self.predators.append(child)
+
 class Boid:
 
     def __init__(self, ecosystem):
@@ -206,10 +218,8 @@ class Boid:
         visible_neighbours_index = []
         for i in neighbour_index:
             relative_position = tree.data[i,:] - self.position
-            angle = np.arccos(np.dot(relative_position,self.velocity)/(
-                np.linalg.norm(relative_position)*np.linalg.norm(self.velocity)))                
-#                np.sqrt(np.dot(relative_position,relative_position))*
-#                np.sqrt(np.dot(self.velocity,self.velocity)))))
+            angle = np.abs(np.arccos(np.dot(relative_position,self.velocity)/(
+                np.linalg.norm(relative_position)*np.linalg.norm(self.velocity))))
             if (not np.isnan(angle) and (np.abs(angle) < self.perception_angle)):
                 visible_neighbours_index.append(i)
         return visible_neighbours_index
@@ -223,13 +233,13 @@ class Prey(Boid):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too
         
         self.number_of_weights = 5
-        self.maximum_speed = self.ecosystem.prey_maximum_speed # How large?
-        self.minimum_speed = 0.1 # How small?
-        self.perception_length = 4*self.ecosystem.prey_radius # How large?
-        self.perception_angle = np.pi/2 # How large? Should it differ between prey/predators.
-        self.too_close_radius = 2*self.ecosystem.prey_radius # How large?
-        self.boid_weight = 1 # How large?
-        self.life_span = 200 # how large?
+        self.maximum_speed = self.ecosystem.prey_maximum_speed
+        self.minimum_speed = self.ecosystem.prey_minimum_speed
+        self.perception_length = self.ecosystem.prey_perception_length
+        self.perception_angle = self.ecosystem.prey_perception_angle
+        self.too_close_radius = self.ecosystem.prey_too_close_radius
+        self.boid_weight = self.ecosystem.prey_weight
+        self.life_span = self.ecosystem.prey_lifespan
 
         self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights        
         self.position = self.initialize_position()        
@@ -365,13 +375,12 @@ class Predator(Boid):
 
         self.number_of_weights = 5
         self.maximum_speed = self.ecosystem.predator_maximum_speed # how large?
-        self.minimum_speed = 0.1 # How small?
-        self.perception_length = 4*self.ecosystem.predator_radius # How large?
-        self.perception_angle = np.pi*3/2 # how large? Should it differ between prey/predators.
-        self.too_close_radius = 2*self.ecosystem.predator_radius # How large?
-#        self.predator_velocities = []
-        self.boid_weight = 1 # How large?
-        self.life_span = 200 # How large?
+        self.minimum_speed = self.ecosystem.predator_minimum_speed
+        self.perception_length = self.ecosystem.predator_perception_length
+        self.perception_angle = self.ecosystem.predator_perception_angle
+        self.too_close_radius = self.ecosystem.predator_too_close_radius
+        self.boid_weight = self.ecosystem.predator_weight
+        self.life_span = self.ecosystem.predator_lifespan
         
         self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights
         self.position = self.initialize_position()        
@@ -472,7 +481,6 @@ class Predator(Boid):
         Return a boolean value describing whether boid is dead.
         Predators can only dies of old age (for now).
         """
-
         if (self.age > self.life_span):
             return True
         else:

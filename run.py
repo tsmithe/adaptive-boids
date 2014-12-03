@@ -12,6 +12,7 @@ from statistics import StatisticsHelper
 
 # Set these parameters -- TODO: argparse!
 SEED = 0
+
 DT = 2
 RUN_TIME = 10000 # in units of time
 DUMP_STATS_INTERVAL = 2 # in units of *iterations* (one iteration = 1 DT time)
@@ -23,6 +24,7 @@ PREY_RADIUS = 5
 PREDATOR_RADIUS = 5
 FEEDING_AREA_RADIUS = 5
 FEEDING_AREA_POSITION = (50, 50)
+
 
 def export_stats(prey_statistics, predator_statistics, ecosystem):
     prey_statistics.update_data(ecosystem.prey, ecosystem.prey_tree)
@@ -63,6 +65,7 @@ def main():
         #  -- check for boids marked as dead, and respawn them
         #  -- update lifespan values for living boids
         ecosystem.kill_prey()
+        ecosystem.kill_predators()
         ecosystem.update_age()
 
         # Compute statistics and dump data to disk
