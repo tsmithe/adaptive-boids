@@ -3,7 +3,7 @@ import numpy as np
 
 class StatisticsHelper:
     
-    def __init__(self, boids, tree, file_path,
+    def __init__(self, boids, tree, file_path, append_to_file,
                  position = False,
                  direction = False,
                  centre_of_mass = False,
@@ -17,22 +17,26 @@ class StatisticsHelper:
         self.tree = tree
         
         if position:
-            self.positions_csv = savecsv(file_path+"positions.csv")
+            self.positions_csv = savecsv(file_path+"positions.csv",
+                                         append_to_file)
         else:
             self.positions_csv = None
             
         if direction:
-            self.directions_csv = savecsv(file_path+"directions.csv")
+            self.directions_csv = savecsv(file_path+"directions.csv",
+                                          append_to_file)
         else:
             self.directions_csv = None
 
         if centre_of_mass:
-            self.centre_of_mass_csv = savecsv(file_path+"centre_of_mass.csv")
+            self.centre_of_mass_csv = savecsv(file_path+"centre_of_mass.csv",
+                                              append_to_file)
         else:
             self.centre_of_mass_csv = None
             
         if scalars:
-            self.scalars_csv = savecsv(file_path+"scalars.csv")
+            self.scalars_csv = savecsv(file_path+"scalars.csv",
+                                       append_to_file)
         else:
             self.scalars_csv = None
         
