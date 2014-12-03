@@ -12,9 +12,9 @@ from statistics import StatisticsHelper
 
 # Set these parameters -- TODO: argparse!
 SEED = 0
-DT = 1
-RUN_TIME = 10000
-DUMP_STATS_INTERVAL = 2
+DT = 2
+RUN_TIME = 10000 # in units of time
+DUMP_STATS_INTERVAL = 2 # in units of *iterations* (one iteration = 1 DT time)
 
 WORLD_RADIUS = 100
 NUM_PREY = 200
@@ -45,6 +45,7 @@ def main():
                                            True, True, True)
 
     t = 0
+    iteration = 0
     while t < RUN_TIME:
         sys.stdout.write("\rt = %.1f" % t)
         sys.stdout.flush()
@@ -65,13 +66,14 @@ def main():
         ecosystem.update_age()
 
         # Compute statistics and dump data to disk
-        if not t % DUMP_STATS_INTERVAL:
+        if not iteration % DUMP_STATS_INTERVAL:
             export_stats(prey_statistics, predator_statistics, ecosystem)
 
         # Escape criterion: if avg life span not increasing for large no. of runs
 
         # Update time
         t += DT
+        iteration += 1
 
         # Update positions (and corresponding regions) and stamina
         ecosystem.update_boid_velocities()

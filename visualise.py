@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import csv, numpy as np
 
-from run import DUMP_STATS_INTERVAL, WORLD_RADIUS
+from run import DUMP_STATS_INTERVAL, DT, WORLD_RADIUS
 
 PLOT_MINIMUM = -2*WORLD_RADIUS
 PLOT_MAXIMUM = 2*WORLD_RADIUS
@@ -21,7 +21,7 @@ FRAME_INTERVAL = 50 # NB: Matplotlib doesn't seem to go much faster...
 
 def animate(i, fig, ax, text, prey_graph, predator_graph,
             prey_frames, predator_frames):
-    text.set_text("t = %d" % (i*DUMP_STATS_INTERVAL))
+    text.set_text("t = %d" % (i*(DUMP_STATS_INTERVAL*DT)))
     prey_graph.set_offsets(prey_frames[i])
     predator_graph.set_offsets(predator_frames[i])
     return [text, prey_graph, predator_graph]
