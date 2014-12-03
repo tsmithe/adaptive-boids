@@ -18,6 +18,7 @@ class Ecosystem:
         self.num_predators = num_predators
         self.feeding_area_position = np.asarray(feeding_area_position)
         self.feeding_area_radius = 5
+        self.boundary_radius = 50
 
         self.prey_radius = 5 # TODO
         self.predator_radius = 5 # TODO
@@ -118,7 +119,11 @@ class Boid:
         Doesn't need to be specialised by the subclass, since the computation
           is effectively the same
         """
-        return self.sensors/self.boid_weight # use neural work instead!
+        if np.linalg.norm(self.position) > ecosystem.boundary_radius:
+            return self.sensors/self.boid_weight - self.position *exp( # A suitable scaling parameter is needed
+                (np.linalg.norm(self.position)-ecosystem.boundary_radius))/np.linalg.norm(self.position)
+        else:
+            return self.sensors/self.boid_weight # use neural work instead!
 
     def update_velocity(self, dt):
         self.velocity += self.acceleration * dt
