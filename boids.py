@@ -35,7 +35,7 @@ class Ecosystem:
         self.predator_radius = predator_radius
         self.predator_maximum_speed = 3
         self.predator_minimum_speed = 0.1
-        self.predator_perception_length = 10*self.predator_radius
+        self.predator_perception_length = 2*self.world_radius
         self.predator_perception_angle = np.pi
         self.predator_too_close_radius = 3*self.predator_radius
         self.predator_weight = 2
@@ -268,8 +268,9 @@ class Prey(Boid):
         The -1 in the len(collided_with) comes from the tree alwys returning
         the boid itself as a collision if a prey does a lookup in the prey_tree.
         """
-        collided_with = self.ecosystem.prey_tree.query_ball_point(self.position,
-            2*self.ecosystem.prey_radius)
+        collided_with = self.find_neighbours(self.ecosystem.prey_tree, 2*self.ecosystem.prey_radius)
+#        collided_with = self.ecosystem.prey_tree.query_ball_point(self.position,
+#            2*self.ecosystem.prey_radius)
         self.velocity += self.acceleration * dt
         if len(collided_with)-1 > 0:
             self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
@@ -293,10 +294,10 @@ class Prey(Boid):
         number_of_visible_prey = np.size(visible_prey_index)
 
         if (number_of_visible_prey > 0):        
-            # Calculate fellow prey position sensor value.
+            # Calculate fellow prey position relative to self.
             relative_prey_positions = (self.ecosystem.prey_tree.data[visible_prey_index,:] - 
                 self.position)
-            # Calculate fellow prey velocity sensor value.
+            # Calculate fellow prey velocity relative to self.
             relative_prey_velocities = (
                 self.ecosystem.prey_velocities[visible_prey_index,:]-self.velocity)
             if (number_of_visible_prey == 1):
@@ -351,7 +352,6 @@ class Prey(Boid):
         relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
         sensors[4,:] = relative_feeding_position
 
-         
         force = np.dot(self.weights,sensors)
         return force
 
@@ -361,8 +361,10 @@ class Prey(Boid):
         Return a boolean value describing whether boid is dead.
         Prey can die of collision with predator and old age (for now).
         """
-        collided_with = self.ecosystem.predator_tree.query_ball_point(self.position,
-            self.ecosystem.prey_radius+self.ecosystem.predator_radius)
+        collided_with = self.find_neighbours(self.ecosystem.predator_tree,
+            self.ecosystem.prey_radius + self.ecosystem.predator_radius)
+#        collided_with = self.ecosystem.predator_tree.query_ball_point(self.position,
+#            self.ecosystem.prey_radius+self.ecosystem.predator_radius)
         
         if len(collided_with) > 0:
             return True
@@ -408,11 +410,14 @@ class Predator(Boid):
         returning the boid itself if a predator looks up neighbours in the 
         predator_tree.
         """
-        collided_with_predator = self.ecosystem.predator_tree.query_ball_point(
-            self.position,2*self.ecosystem.predator_radius)
-        
-        collided_with_prey = self.ecosystem.prey_tree.query_ball_point(
-            self.position, self.ecosystem.prey_radius + self.ecosystem.predator_radius)
+        collided_with_predator = self.find_neighbours(self.ecosystem.predator_tree,
+            2*self.ecosystem.predator_radius)
+#        collided_with_predator = self.ecosystem.predator_tree.query_ball_point(
+#            self.position,2*self.ecosystem.predator_radius)
+        collided_with_prey = self.find_neighbours(self.ecosystem.prey_tree,
+              self.ecosystem.predator_radius + self.ecosystem.prey_radius)
+#        collided_with_prey = self.ecosystem.prey_tree.query_ball_point(
+#            self.position, self.ecosystem.prey_radius + self.ecosystem.predator_radius)
             
         self.velocity += self.acceleration * dt
         if len(collided_with_predator)-1 > 0:
