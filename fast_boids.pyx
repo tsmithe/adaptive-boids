@@ -7,6 +7,9 @@ from libc.math cimport acos, pow, sqrt
 from libc.stdlib cimport abort, malloc, free
 from cython.parallel import parallel, prange
 
+def quick_norm(np.ndarray[np.float64_t, ndim=1] x):
+    return sqrt(pow(x[0], 2) + pow(x[1], 2))
+
 def find_visible_neighbours(np.ndarray[np.float64_t, ndim=2] positions,
                             np.ndarray[np.float64_t, ndim=1] my_position,
                             np.ndarray[np.float64_t, ndim=1] my_velocity,

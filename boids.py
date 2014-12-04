@@ -10,6 +10,7 @@ from scipy.spatial import cKDTree
 import random
 
 import fast_boids
+from fast_boids import quick_norm
 
 class Ecosystem:
     def __init__(self, world_radius, num_prey, num_predators,
@@ -77,7 +78,7 @@ class Ecosystem:
         
     def update_stamina(self):
         for b in self.prey:
-            if (np.linalg.norm(b.position-self.feeding_area_position)<
+            if (quick_norm(b.position-self.feeding_area_position)<
                 self.feeding_area_radius):
                 b.eating = True
                 if b.stamina < 1:
@@ -153,12 +154,13 @@ class Boid:
         Doesn't need to be specialised by the subclass, since the computation
           is effectively the same
         """
-        if (np.linalg.norm(self.position) > self.ecosystem.world_radius):
+        position_norm = quick_norm(self.position)
+        if (position_norm > self.ecosystem.world_radius):
             #boundary_acc = -self.position/self.ecosystem.world_radius
             
             #This could be used as a "force field":
            boundary_acc = (- self.position*np.exp( # A suitable scaling parameter is needed
-               0.01*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position))
+               0.01*(position_norm-self.ecosystem.world_radius))/position_norm)
            return self.sensors/self.boid_weight + boundary_acc
         else:
             return self.sensors/self.boid_weight # use neural work instead!
@@ -268,10 +270,12 @@ class Prey(Boid):
 #        collided_with = self.ecosystem.prey_tree.query_ball_point(self.position,
 #            2*self.ecosystem.prey_radius)
         self.velocity += self.acceleration * dt
+        velocity_norm = quick_norm(self.velocity)
         if len(collided_with)-1 > 0:
-            self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
-        if (np.linalg.norm(self.velocity) > self.maximum_speed):
-            self.velocity = self.velocity*(self.maximum_speed/np.linalg.norm(self.velocity))
+            self.velocity = self.velocity/velocity_norm*self.minimum_speed
+        velocity_norm = quick_norm(self.velocity)
+        if (velocity_norm > self.maximum_speed):
+            self.velocity = self.velocity*(self.maximum_speed/velocity_norm)
 
     @property
     def sensors(self):
@@ -316,7 +320,8 @@ class Prey(Boid):
             relative_too_close_positions = np.array(
                 self.ecosystem.prey_tree.data[too_close_index,:] - self.position)
             if (number_of_too_close == 1):
-                too_close_distance = np.linalg.norm(relative_too_close_positions)
+                #if relative_too_close_positions.size != 2: raise Exception()
+                too_close_distance = quick_norm(relative_too_close_positions.flatten())
                 too_close_direction = relative_too_close_positions/too_close_distance
             else:
                 too_close_distance = np.linalg.norm(relative_too_close_positions, axis=1)
@@ -335,7 +340,7 @@ class Prey(Boid):
             relative_predator_positions = np.array(
                 self.ecosystem.predator_tree.data[visible_predator_index,:] - self.position)
             if (number_of_visible_predators == 1):
-                distance_to_predator = np.linalg.norm(relative_predator_positions)
+                distance_to_predator = quick_norm(relative_predator_positions[0])
                 direction_to_predator = (relative_predator_positions/distance_to_predator)
             else:
                 distance_to_predator = np.linalg.norm(relative_predator_positions,axis=1)
@@ -416,13 +421,15 @@ class Predator(Boid):
 #            self.position, self.ecosystem.prey_radius + self.ecosystem.predator_radius)
             
         self.velocity += self.acceleration * dt
+        velocity_norm = quick_norm(self.velocity)
         if len(collided_with_predator)-1 > 0:
-            self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
+            self.velocity = self.velocity/velocity_norm*self.minimum_speed
         elif len(collided_with_prey) > 0:
-            self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
+            self.velocity = self.velocity/velocity_norm*self.minimum_speed
             self.kill_count += len(collided_with_prey)
-        if np.linalg.norm(self.velocity) > self.maximum_speed:
-            self.velocity = self.velocity*(self.maximum_speed/np.linalg.norm(self.velocity))
+        velocity_norm = quick_norm(self.velocity)
+        if velocity_norm > self.maximum_speed:
+            self.velocity = self.velocity*(self.maximum_speed/velocity_norm)
 
 
     @property
@@ -480,7 +487,8 @@ class Predator(Boid):
             relative_too_close_positions = np.array(
                 self.ecosystem.predator_tree.data[too_close_index,:] - self.position)
             if (number_of_too_close == 1):
-                too_close_dist = np.linalg.norm(relative_too_close_positions)
+                #if relative_too_close_positions.size != 2: raise Exception()
+                too_close_dist = quick_norm(relative_too_close_positions.flatten())
                 too_close_direction = (relative_too_close_positions/too_close_dist)
             else:
                 too_close_dist = np.linalg.norm(relative_too_close_positions, axis=1)
