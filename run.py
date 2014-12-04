@@ -22,9 +22,31 @@ NUM_PREY = 200
 NUM_PREDATORS = 20
 PREY_RADIUS = 5
 PREDATOR_RADIUS = 5
+PREY_LIFESPAN = 10000
+PREDATOR_LIFESPAN = 10000
 FEEDING_AREA_RADIUS = 5
 FEEDING_AREA_POSITION = (50, 50)
 
+'''
+Network weights. Predator:
+1. Target prey position
+2. Target prey velocity
+3. Fellow predator position
+4. Fellow predator velocity
+5. Fellow predator too close
+
+Prey:
+1. Fellow prey position
+2. Fellow prey velocity
+3. Fellow prey "too close"
+4. Predator
+5. Feeding area sensor
+'''
+# PREY_NETWORK_WEIGHTS = 2*np.random.random(5)-1
+# PREDATOR_NETWORK_WEIGHTS = 2*np.random.random(5)-1
+
+PREDATOR_NETWORK_WEIGHTS = np.array([1, 0, 0, 0, 0])
+PREY_NETWORK_WEIGHTS = np.array([1, 0, 0, 0, 0])
 
 def export_stats(prey_statistics, predator_statistics, ecosystem):
     prey_statistics.update_data(ecosystem.prey, ecosystem.prey_tree)
@@ -39,7 +61,9 @@ def main():
 
     ecosystem = Ecosystem(WORLD_RADIUS, NUM_PREY, NUM_PREDATORS,
                           PREY_RADIUS, PREDATOR_RADIUS,
-                          FEEDING_AREA_RADIUS, FEEDING_AREA_POSITION, DT)
+                          FEEDING_AREA_RADIUS, FEEDING_AREA_POSITION, DT,
+                          PREY_NETWORK_WEIGHTS, PREDATOR_NETWORK_WEIGHTS,
+                          PREY_LIFESPAN, PREDATOR_LIFESPAN)
 
     prey_statistics = StatisticsHelper('prey_', False,
                                        True, True, True)
