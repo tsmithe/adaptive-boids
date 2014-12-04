@@ -12,7 +12,9 @@ import random
 class Ecosystem:
     def __init__(self, world_radius, num_prey, num_predators,
                  prey_radius, predator_radius,
-                 feeding_area_radius, feeding_area_position, dt):
+                 feeding_area_radius, feeding_area_position, dt,
+                 prey_network_weights, predator_network_weights,
+                 prey_lifespan, predator_lifespan):
         self.dt = dt
         self.world_radius = world_radius
         self.num_prey = num_prey
@@ -27,7 +29,8 @@ class Ecosystem:
         self.prey_perception_angle = np.pi/2
         self.prey_too_close_radius = 3*self.prey_radius
         self.prey_weight = 1
-        self.prey_lifespan = 1000
+        self.prey_lifespan = prey_lifespan
+        self.prey_network_weights = prey_network_weights
 
         self.predator_radius = predator_radius
         self.predator_maximum_speed = 3
@@ -36,7 +39,8 @@ class Ecosystem:
         self.predator_perception_angle = np.pi
         self.predator_too_close_radius = 3*self.predator_radius
         self.predator_weight = 2
-        self.predator_lifespan = 2000
+        self.predator_lifespan = predator_lifespan
+        self.predator_network_weights = predator_network_weights
         
         self.prey = []
         self.predators = []
@@ -148,8 +152,14 @@ class Boid:
           is effectively the same
         """
         if (np.linalg.norm(self.position) > self.ecosystem.world_radius):
-            return (self.sensors/self.boid_weight - self.position*np.exp( # A suitable scaling parameter is needed
-                0.01*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position))
+            
+            boundary_acc = -self.position/self.ecosystem.world_radius
+            
+            return self.sensors/self.boid_weight + boundary_acc
+                    
+            #This could be used as a "force field":
+            #   boundary_acc = - self.position*np.exp( # A suitable scaling parameter is needed
+            #0.01*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position))
         else:
             return self.sensors/self.boid_weight # use neural work instead!
 
@@ -246,7 +256,7 @@ class Prey(Boid):
         self.boid_weight = self.ecosystem.prey_weight
         self.life_span = self.ecosystem.prey_lifespan
 
-        self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights        
+        self.weights = self.ecosystem.prey_network_weights # neural net weights        
         self.position = self.initialize_position()        
         self.velocity = self.initialize_velocity()
 
@@ -278,8 +288,6 @@ class Prey(Boid):
         
         This function currently assumes prey_tree and predator_tree are of
         the class cKDTree, NOT KDTree!
-
-        Do something different from Prey.sensors!
         """
         sensors = np.zeros([self.number_of_weights,2])
         
@@ -386,8 +394,8 @@ class Predator(Boid):
         self.too_close_radius = self.ecosystem.predator_too_close_radius
         self.boid_weight = self.ecosystem.predator_weight
         self.life_span = self.ecosystem.predator_lifespan
-        
-        self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights
+        self.weights = self.ecosystem.predator_network_weights
+
         self.position = self.initialize_position()        
         self.velocity = self.initialize_velocity()
         
