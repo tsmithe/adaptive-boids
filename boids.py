@@ -21,22 +21,22 @@ class Ecosystem:
         self.feeding_area_radius = feeding_area_radius
 
         self.prey_radius = prey_radius
-        self.prey_maximum_speed = 5
+        self.prey_maximum_speed = 2
         self.prey_minimum_speed = 0.1
-        self.prey_perception_length = 4*self.prey_radius
+        self.prey_perception_length = 10*self.prey_radius
         self.prey_perception_angle = np.pi/2
-        self.prey_too_close_radius = 2*self.prey_radius
+        self.prey_too_close_radius = 3*self.prey_radius
         self.prey_weight = 1
-        self.prey_lifespan = 500
+        self.prey_lifespan = 1000
 
         self.predator_radius = predator_radius
-        self.predator_maximum_speed = 10
+        self.predator_maximum_speed = 3
         self.predator_minimum_speed = 0.1
-        self.predator_perception_length = 4*self.predator_radius
+        self.predator_perception_length = 10*self.predator_radius
         self.predator_perception_angle = np.pi
-        self.predator_too_close_radius = 2*self.predator_radius
+        self.predator_too_close_radius = 3*self.predator_radius
         self.predator_weight = 2
-        self.predator_lifespan = 1000
+        self.predator_lifespan = 2000
         
         self.prey = []
         self.predators = []
@@ -96,27 +96,33 @@ class Ecosystem:
 
     def kill_prey(self):
         # Kill prey
+        number_of_killed = 0
         for b in self.prey:
             if (b.killed == True):
                 self.prey.remove(b)
-                fitness_values = [1/(b.age+0.01) for b in self.prey]
-                parent = self.roulette_selection(fitness_values)
-                child = Prey(self)
-                child.weights = self.prey[parent].weights
-                child.weights = child.mutate()
-                self.prey.append(child)
+                number_of_killed += 1
+        for i in np.arange(number_of_killed):                
+            fitness_values = [1/(b.age+0.01) for b in self.prey]
+            parent = self.roulette_selection(fitness_values)
+            child = Prey(self)
+            child.weights = self.prey[parent].weights
+            child.weights = child.mutate()
+            self.prey.append(child)
                 
     def kill_predators(self):
         # Kill predators
+        number_of_killed = 0
         for b in self.predators:
             if (b.killed == True):
                 self. predators.remove(b)
-                fitness_values = [1/(b.age+0.01) for b in self.predators]
-                parent = self.roulette_selection(fitness_values)
-                child = Predator(self)
-                child.weights = self.predators[parent].weights
-                child.weights = child.mutate()
-                self.predators.append(child)
+                number_of_killed += 1
+        for i in np.arange(number_of_killed):
+            fitness_values = [1/(b.kill_count+0.01) for b in self.predators]
+            parent = self.roulette_selection(fitness_values)
+            child = Predator(self)
+            child.weights = self.predators[parent].weights
+            child.weights = child.mutate()
+            self.predators.append(child)
 
 class Boid:
 
@@ -141,9 +147,9 @@ class Boid:
         Doesn't need to be specialised by the subclass, since the computation
           is effectively the same
         """
-        if np.linalg.norm(self.position) > self.ecosystem.world_radius:
-            return self.sensors/self.boid_weight - self.position *np.exp( # A suitable scaling parameter is needed
-                100*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position)
+        if (np.linalg.norm(self.position) > self.ecosystem.world_radius):
+            return (self.sensors/self.boid_weight - self.position*np.exp( # A suitable scaling parameter is needed
+                0.1*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position))
         else:
             return self.sensors/self.boid_weight # use neural work instead!
 
@@ -151,7 +157,6 @@ class Boid:
         self.velocity += self.acceleration * dt
 
     def update_position(self, dt):
-#        self.update_velocity(dt)
         self.position += self.velocity * dt
         
     def initialize_position(self):
@@ -218,8 +223,8 @@ class Boid:
         visible_neighbours_index = []
         for i in neighbour_index:
             relative_position = tree.data[i,:] - self.position
-            angle = np.abs(np.arccos(np.dot(relative_position,self.velocity)/(
-                np.linalg.norm(relative_position)*np.linalg.norm(self.velocity))))
+            angle = np.arccos(np.dot(relative_position,self.velocity)/(
+                np.linalg.norm(relative_position)*np.linalg.norm(self.velocity)))
             if (not np.isnan(angle) and (np.abs(angle) < self.perception_angle)):
                 visible_neighbours_index.append(i)
         return visible_neighbours_index
@@ -251,16 +256,15 @@ class Prey(Boid):
         has collided with predator since this is done in property killed.
         If colided: keep current flight direction and set speed to self.minimum_speed.
         Else: calculate new acceleration and new velocity.
-        If new velocity > self.maximum_speed: Reduce speed to self.maximum_speed
+        If new velocity > self.maximum_speed: Reduce speed to self.maximum_speed.
+        The -1 in the len(collided_with) comes from the tree alwys returning
+        the boid itself as a collision if a prey does a lookup in the prey_tree.
         """
         collided_with = self.ecosystem.prey_tree.query_ball_point(self.position,
             2*self.ecosystem.prey_radius)
-        
-        if len(collided_with) > 0:
+        self.velocity += self.acceleration * dt
+        if len(collided_with)-1 > 0:
             self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
-        else:
-            self.velocity += self.acceleration * dt
-            
         if np.linalg.norm(self.velocity) > self.maximum_speed:
             self.velocity = self.velocity*(self.maximum_speed/np.linalg.norm(self.velocity))
 
@@ -279,7 +283,7 @@ class Prey(Boid):
         
         # Find visible prey.
         visible_prey_index = self.find_visible_neighbours(
-            self.ecosystem.prey_tree, self.perception_length)
+            self.ecosystem.prey_tree, self.perception_length + self.ecosystem.prey_radius)
         number_of_visible_prey = np.size(visible_prey_index)
 
         if (number_of_visible_prey > 0):        
@@ -301,7 +305,7 @@ class Prey(Boid):
             
         # Find "too close" prey.
         too_close_index = self.find_visible_neighbours(
-            self.ecosystem.prey_tree, self.too_close_radius)
+            self.ecosystem.prey_tree, self.too_close_radius + self.ecosystem.prey_radius)
         number_of_too_close = np.size(too_close_index)
             
         if (number_of_too_close > 0):
@@ -320,7 +324,7 @@ class Prey(Boid):
 
         # Find visible predators.
         visible_predator_index = self.find_visible_neighbours(
-            self.ecosystem.predator_tree, self.perception_length)
+            self.ecosystem.predator_tree, self.perception_length + self.ecosystem.predator_radius)
         number_of_visible_predators = np.size(visible_predator_index)
 
         if (number_of_visible_predators > 0):
@@ -343,7 +347,6 @@ class Prey(Boid):
         sensors[4,:] = np.zeros(2)
          
         force = np.dot(self.weights,sensors)
-        
         return force
 
     @property
@@ -385,6 +388,8 @@ class Predator(Boid):
         self.weights = 2*np.random.random(self.number_of_weights)-1 # neural net weights
         self.position = self.initialize_position()        
         self.velocity = self.initialize_velocity()
+        
+        self.kill_count = 0
 
     def update_velocity(self, dt):
         """
@@ -392,16 +397,23 @@ class Predator(Boid):
         has collided with predator since this is done in property killed.
         If colided: keep current flight direction and set speed to self.minimum_speed.
         Else: calculate new acceleration and new velocity.
-        If new velocity > self.maximum_speed: Reduce speed to self.maximum_speed
+        If new velocity > self.maximum_speed: Reduce speed to self.maximum_speed.
+        The -1 in len(collided_with_predator)-1 comes from the tree always 
+        returning the boid itself if a predator looks up neighbours in the 
+        predator_tree.
         """
-        collided_with = self.ecosystem.predator_tree.query_ball_point(self.position,
-            2*self.ecosystem.predator_radius)
+        collided_with_predator = self.ecosystem.predator_tree.query_ball_point(
+            self.position,2*self.ecosystem.predator_radius)
         
-        if len(collided_with) > 0:
-            self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
-        else:
-            self.velocity += self.acceleration * dt
+        collided_with_prey = self.ecosystem.prey_tree.query_ball_point(
+            self.position, self.ecosystem.prey_radius + self.ecosystem.predator_radius)
             
+        self.velocity += self.acceleration * dt
+        if len(collided_with_predator)-1 > 0:
+            self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
+        elif len(collided_with_prey) > 0:
+            self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
+            self.kill_count += len(collided_with_prey)
         if np.linalg.norm(self.velocity) > self.maximum_speed:
             self.velocity = self.velocity*(self.maximum_speed/np.linalg.norm(self.velocity))
 
@@ -416,7 +428,7 @@ class Predator(Boid):
         
         # Find visible prey.
         visible_prey_index = self.find_visible_neighbours(
-            self.ecosystem.prey_tree, self.perception_length)
+            self.ecosystem.prey_tree, self.perception_length + self.ecosystem.prey_radius)
         number_of_visible_prey = np.size(visible_prey_index)
     
         # Target prey position sensor and target velocity. Chooses the prey 
@@ -433,7 +445,7 @@ class Predator(Boid):
         
         # Find visible predators.
         visible_predator_index = self.find_visible_neighbours(
-            self.ecosystem.predator_tree, self.perception_length)
+            self.ecosystem.predator_tree, self.perception_length + self.ecosystem.predator_radius)
         number_of_visible_predators = np.size(visible_predator_index)
         
         # Fellow predator position and velocity sensor values.
@@ -453,7 +465,7 @@ class Predator(Boid):
                     
         # "too-close" predator sensor.
         too_close_index = self.find_visible_neighbours(
-            self.ecosystem.predator_tree, self.too_close_radius)
+            self.ecosystem.predator_tree, self.too_close_radius + self.ecosystem.predator_radius)
         number_of_too_close = np.size(too_close_index)
         
         # Calculate "too close" sensor value.
@@ -472,7 +484,6 @@ class Predator(Boid):
     
         # Total force.           
         force = np.dot(self.weights,sensors)
-        
         return force
         
     @property
