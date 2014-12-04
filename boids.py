@@ -149,7 +149,7 @@ class Boid:
         """
         if (np.linalg.norm(self.position) > self.ecosystem.world_radius):
             return (self.sensors/self.boid_weight - self.position*np.exp( # A suitable scaling parameter is needed
-                0.1*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position))
+                0.01*(np.linalg.norm(self.position)-self.ecosystem.world_radius))/np.linalg.norm(self.position))
         else:
             return self.sensors/self.boid_weight # use neural work instead!
 
@@ -262,9 +262,11 @@ class Prey(Boid):
         """
         collided_with = self.ecosystem.prey_tree.query_ball_point(self.position,
             2*self.ecosystem.prey_radius)
-        self.velocity += self.acceleration * dt
+
         if len(collided_with)-1 > 0:
             self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
+        else:
+            self.velocity += self.acceleration * dt
         if np.linalg.norm(self.velocity) > self.maximum_speed:
             self.velocity = self.velocity*(self.maximum_speed/np.linalg.norm(self.velocity))
 
@@ -408,12 +410,13 @@ class Predator(Boid):
         collided_with_prey = self.ecosystem.prey_tree.query_ball_point(
             self.position, self.ecosystem.prey_radius + self.ecosystem.predator_radius)
             
-        self.velocity += self.acceleration * dt
         if len(collided_with_predator)-1 > 0:
             self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
         elif len(collided_with_prey) > 0:
             self.velocity = self.velocity/np.linalg.norm(self.velocity)*self.minimum_speed
             self.kill_count += len(collided_with_prey)
+        else:
+            self.velocity += self.acceleration * dt
         if np.linalg.norm(self.velocity) > self.maximum_speed:
             self.velocity = self.velocity*(self.maximum_speed/np.linalg.norm(self.velocity))
 
