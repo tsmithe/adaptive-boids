@@ -155,13 +155,14 @@ class Boid:
           is effectively the same
         """
         position_norm = quick_norm(self.position)
-        if (position_norm > self.ecosystem.world_radius):
-            #boundary_acc = -self.position/self.ecosystem.world_radius
-            
+        if position_norm > self.ecosystem.world_radius:
+#            boundary_acc = -self.position/self.ecosystem.world_radius
             #This could be used as a "force field":
-           boundary_acc = (- self.position*np.exp( # A suitable scaling parameter is needed
-               0.01*(position_norm-self.ecosystem.world_radius))/position_norm)
-           return self.sensors/self.boid_weight + boundary_acc
+            boundary_acc = - (self.position*np.exp( # A suitable scaling parameter is needed
+                0.01*(position_norm-self.ecosystem.world_radius))
+                              /position_norm)
+
+            return self.sensors/self.boid_weight + boundary_acc
         else:
             return self.sensors/self.boid_weight # use neural work instead!
 
