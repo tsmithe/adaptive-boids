@@ -9,6 +9,8 @@ import numpy as np
 from scipy.spatial import cKDTree
 import random
 
+import fast_boids
+
 class Ecosystem:
     def __init__(self, world_radius, num_prey, num_predators,
                  prey_radius, predator_radius,
@@ -207,7 +209,7 @@ class Boid:
         """
         neighbour_indices = tree.query_ball_point(self.position, radius)
         return neighbour_indices
-        
+
     def find_visible_neighbours(self, tree, radius):
         """
         Takes a cKDTree as input and finds all neighbours within a circle 
@@ -219,15 +221,9 @@ class Boid:
         neighbour indices. Removes any object located at the exact same
         position as the search center, e.g. a prey won't find itself.
         """
-        neighbour_index = self.find_neighbours(tree, radius)
-        visible_neighbours_index = []
-        for i in neighbour_index:
-            relative_position = tree.data[i,:] - self.position
-            angle = np.arccos(np.dot(relative_position,self.velocity)/(
-                np.linalg.norm(relative_position)*np.linalg.norm(self.velocity)))
-            if (not np.isnan(angle) and (np.abs(angle) < self.perception_angle)):
-                visible_neighbours_index.append(i)
-        return visible_neighbours_index
+        return fast_boids.find_visible_neighbours(
+            tree.data, self.position, self.velocity, self.perception_angle,
+            self.find_neighbours(tree, radius))
         
     @property
     def killed(self):
@@ -284,7 +280,7 @@ class Prey(Boid):
         # Find visible prey.
         visible_prey_index = self.find_visible_neighbours(
             self.ecosystem.prey_tree, self.perception_length + self.ecosystem.prey_radius)
-        number_of_visible_prey = np.size(visible_prey_index)
+        number_of_visible_prey = len(visible_prey_index)
 
         if (number_of_visible_prey > 0):        
             # Calculate fellow prey position sensor value.
