@@ -14,14 +14,14 @@ from statistics import StatisticsHelper
 SEED = 0
 
 DT = 1
-RUN_TIME = 10000 # in units of time
-DUMP_STATS_INTERVAL = 2 # in units of *iterations* (one iteration = 1 DT time)
+RUN_TIME = 100000 # in units of time
+DUMP_STATS_INTERVAL = 5 # in units of *iterations* (one iteration = 1 DT time)
 
 WORLD_RADIUS = 400
 NUM_PREY = 30
 NUM_PREDATORS = 3
-PREY_RADIUS = 2
-PREDATOR_RADIUS = 2
+PREY_RADIUS = 5
+PREDATOR_RADIUS = 5
 PREY_LIFESPAN = 5000
 PREDATOR_LIFESPAN = 1100
 FEEDING_AREA_RADIUS = 5

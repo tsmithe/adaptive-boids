@@ -19,13 +19,16 @@ PLOT_MINIMUM = -1.01*WORLD_RADIUS
 PLOT_MAXIMUM = 1.01*WORLD_RADIUS
 
 FRAME_INTERVAL = 50 # NB: Matplotlib doesn't seem to go much faster...
+EVERY_NTH_FRAME = 1 # Only show every Nth frame (frames are enumerable)
+START_AT_T = 0 # Start at t = ? -- counting from 0
 
 def animate(i, fig, ax, text,
             prey_graph, prey_quivers,
             predator_graph, predator_quivers,
             prey_pos_data, prey_vel_data,
             predator_pos_data, predator_vel_data):
-    text.set_text("t = %d" % (i*(DUMP_STATS_INTERVAL*DT)))
+    text.set_text("t = %d" % (i*(DUMP_STATS_INTERVAL*DT*EVERY_NTH_FRAME)
+                              + START_AT_T))
     u = [u[0]/quick_norm(np.array(u)) for u in prey_vel_data[i]]
     v = [u[1]/quick_norm(np.array(u)) for u in prey_vel_data[i]]
     prey_quivers.set_offsets(prey_pos_data[i])
@@ -40,7 +43,14 @@ def animate(i, fig, ax, text,
 
 def collect_data(csv_reader):
     frame_data = []
+    i = 0
     for row in csv_reader:
+        if i % EVERY_NTH_FRAME:
+            i += 1
+            continue
+        if i*DUMP_STATS_INTERVAL*DT < START_AT_T:
+            i += 1
+            continue
         positions = np.array(list(map(lambda x: float(x), row)))
         num_boids = positions.size / 2
         positions = positions.reshape(num_boids, 2)
@@ -48,6 +58,7 @@ def collect_data(csv_reader):
         for boid in positions:
             data.append((boid[0], boid[1]))
         frame_data.append(data)
+        i += 1
     return frame_data
 
 prey_pos_reader = csv.reader(open('prey_positions.csv'))
