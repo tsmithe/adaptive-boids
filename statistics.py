@@ -5,7 +5,7 @@ class StatisticsHelper:
     
     def __init__(self, file_path, append_to_file = False,
                  position = False,
-                 direction = False,
+                 velocities = False,
                  centre_of_mass = False,
                  scalars = False,
                  ):
@@ -22,11 +22,11 @@ class StatisticsHelper:
         else:
             self.positions_csv = None
             
-        if direction:
-            self.directions_csv = csv.writer(open(file_path+"directions.csv",
+        if velocities:
+            self.velocities_csv = csv.writer(open(file_path+"velocities.csv",
                                                   self.file_mode))
         else:
-            self.directions_csv = None
+            self.velocities_csv = None
 
         if centre_of_mass:
             self.centre_of_mass_csv = csv.writer(open(
@@ -49,8 +49,8 @@ class StatisticsHelper:
         if self.positions_csv:
             self.positions_csv.writerow(self.positions.tolist())
             
-        if self.directions_csv:
-            self.directions_csv.writerow(self.directions.tolist())
+        if self.velocities_csv:
+            self.velocities_csv.writerow(self.velocities.tolist())
 
         if self.centre_of_mass_csv:
             self.centre_of_mass_csv.writerow(self.centre_of_mass.tolist())
@@ -64,9 +64,8 @@ class StatisticsHelper:
         return np.ndarray.flatten(np.array([b.position for b in self.boids]))
     
     @property
-    def directions(self):
-        return np.ndarray.flatten(np.array(#np.arctan(b.velocity) <- does not work
-            [0 for b in self.boids]))
+    def velocities(self):
+        return np.ndarray.flatten(np.array([b.velocity for b in self.boids]))
     
     @property
     def average_nearest_neighbour(self):
