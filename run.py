@@ -13,17 +13,17 @@ from statistics import StatisticsHelper
 # Set these parameters -- TODO: argparse!
 SEED = 0
 
-DT = 2
+DT = 1
 RUN_TIME = 10000 # in units of time
 DUMP_STATS_INTERVAL = 2 # in units of *iterations* (one iteration = 1 DT time)
 
-WORLD_RADIUS = 100
-NUM_PREY = 200
-NUM_PREDATORS = 20
-PREY_RADIUS = 5
-PREDATOR_RADIUS = 5
-PREY_LIFESPAN = 10000
-PREDATOR_LIFESPAN = 10000
+WORLD_RADIUS = 400
+NUM_PREY = 30
+NUM_PREDATORS = 3
+PREY_RADIUS = 2
+PREDATOR_RADIUS = 2
+PREY_LIFESPAN = 5000
+PREDATOR_LIFESPAN = 1100
 FEEDING_AREA_RADIUS = 5
 FEEDING_AREA_POSITION = (50, 50)
 
@@ -45,8 +45,8 @@ Prey:
 # PREY_NETWORK_WEIGHTS = 2*np.random.random(5)-1
 # PREDATOR_NETWORK_WEIGHTS = 2*np.random.random(5)-1
 
-PREDATOR_NETWORK_WEIGHTS = np.array([1, 0, 0, 0, 0])
-PREY_NETWORK_WEIGHTS = np.array([1, 0, 0, 0, 0])
+PREDATOR_NETWORK_WEIGHTS = np.array([1.0, 1.0, 0.0, 0.0, -1.0])
+PREY_NETWORK_WEIGHTS = np.array([1.0, 1.0, -1.0, -0.0, 0.0])
 
 def export_stats(prey_statistics, predator_statistics, ecosystem):
     prey_statistics.update_data(ecosystem.prey, ecosystem.prey_tree)

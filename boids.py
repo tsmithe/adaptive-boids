@@ -26,22 +26,22 @@ class Ecosystem:
         self.feeding_area_radius = feeding_area_radius
 
         self.prey_radius = prey_radius
-        self.prey_maximum_speed = 2
+        self.prey_maximum_speed = 2.0
         self.prey_minimum_speed = 0.1
         self.prey_perception_length = 10*self.prey_radius
         self.prey_perception_angle = np.pi/2
         self.prey_too_close_radius = 3*self.prey_radius
-        self.prey_weight = 1
+        self.prey_weight = 1.0
         self.prey_lifespan = prey_lifespan
         self.prey_network_weights = prey_network_weights
 
         self.predator_radius = predator_radius
-        self.predator_maximum_speed = 3
+        self.predator_maximum_speed = 2.5
         self.predator_minimum_speed = 0.1
         self.predator_perception_length = 2*self.world_radius
         self.predator_perception_angle = np.pi
         self.predator_too_close_radius = 3*self.predator_radius
-        self.predator_weight = 2
+        self.predator_weight = 2.0
         self.predator_lifespan = predator_lifespan
         self.predator_network_weights = predator_network_weights
         
@@ -53,6 +53,7 @@ class Ecosystem:
 
         for i in range(self.num_predators):
             self.predators.append(Predator(self))
+            self.predators[i].life_span += i*self.dt
 
         self.update_position_data()
         self.update_velocity_data()
@@ -138,7 +139,7 @@ class Boid:
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
         self.age = 0
-        self.creep_range = 1
+        self.creep_range = 1.0
         self.mutation_probability = 0.5
 
 
@@ -159,8 +160,7 @@ class Boid:
 #            boundary_acc = -self.position/self.ecosystem.world_radius
             #This could be used as a "force field":
             boundary_acc = - (self.position*np.exp( # A suitable scaling parameter is needed
-                0.01*(position_norm-self.ecosystem.world_radius))
-                              /position_norm)
+                1.0*(position_norm-self.ecosystem.world_radius))/position_norm)
 
             return self.sensors/self.boid_weight + boundary_acc
         else:
@@ -203,8 +203,7 @@ class Boid:
         mutated_weights = self.weights.copy()
         for i in np.arange(network_size):
             if (np.random.random() < self.mutation_probability):
-                mutated_weights[i] = (mutated_weights[i] - 
-                    2*self.creep_range*(np.random.random()-0.5))            
+                mutated_weights[i] -= 2*self.creep_range*(np.random.random()-0.5)
         return mutated_weights
         
     def find_neighbours(self, tree, radius):
@@ -268,8 +267,6 @@ class Prey(Boid):
         the boid itself as a collision if a prey does a lookup in the prey_tree.
         """
         collided_with = self.find_neighbours(self.ecosystem.prey_tree, 2*self.ecosystem.prey_radius)
-#        collided_with = self.ecosystem.prey_tree.query_ball_point(self.position,
-#            2*self.ecosystem.prey_radius)
         self.velocity += self.acceleration * dt
         velocity_norm = quick_norm(self.velocity)
         if len(collided_with)-1 > 0:
@@ -352,9 +349,10 @@ class Prey(Boid):
             
         # Feeding area sensor, assuming only one area and perfect vision.
         relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
-        sensors[4,:] = relative_feeding_position
+#        sensors[4,:] = relative_feeding_position
+        sensors[4,:] = np.zeros(2)
 
-        force = np.dot(self.weights,sensors)
+        force = np.dot(self.weights,sensors)/self.number_of_weights
         return force
 
     @property
@@ -365,8 +363,6 @@ class Prey(Boid):
         """
         collided_with = self.find_neighbours(self.ecosystem.predator_tree,
             self.ecosystem.prey_radius + self.ecosystem.predator_radius)
-#        collided_with = self.ecosystem.predator_tree.query_ball_point(self.position,
-#            self.ecosystem.prey_radius+self.ecosystem.predator_radius)
         
         if len(collided_with) > 0:
             return True
@@ -414,12 +410,9 @@ class Predator(Boid):
         """
         collided_with_predator = self.find_neighbours(self.ecosystem.predator_tree,
             2*self.ecosystem.predator_radius)
-#        collided_with_predator = self.ecosystem.predator_tree.query_ball_point(
-#            self.position,2*self.ecosystem.predator_radius)
+
         collided_with_prey = self.find_neighbours(self.ecosystem.prey_tree,
               self.ecosystem.predator_radius + self.ecosystem.prey_radius)
-#        collided_with_prey = self.ecosystem.prey_tree.query_ball_point(
-#            self.position, self.ecosystem.prey_radius + self.ecosystem.predator_radius)
             
         self.velocity += self.acceleration * dt
         velocity_norm = quick_norm(self.velocity)
@@ -453,7 +446,6 @@ class Predator(Boid):
                 self.ecosystem.prey_tree.data[visible_prey_index,:] - self.position)
             prey_distance = np.linalg.norm(relative_prey_positions, axis=1)
             target_prey_index = visible_prey_index[np.argmin(prey_distance)]
-            # !!! TODO
             sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index,:] - self.position
             sensors[1,:] = self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
 
@@ -499,7 +491,7 @@ class Predator(Boid):
                 too_close_direction)/number_of_visible_predators)
     
         # Total force.           
-        force = np.dot(self.weights,sensors)
+        force = np.dot(self.weights,sensors)/self.number_of_weights
         return force
         
     @property
