@@ -2,7 +2,6 @@
 """
 Created on Wed Nov 26 16:00:03 2014
 
-@author: rikardvinge
 """
 
 import numpy as np
@@ -154,6 +153,7 @@ class Boid:
         self.eating = False
         self.age = 1
 
+
     @property
     def sensors(self):
         raise NotImplementedError("Should be specialised by the subclass")
@@ -284,16 +284,18 @@ class Prey(Boid):
         collided_with = self.find_neighbours(self.ecosystem.prey_tree, 2*self.ecosystem.prey_radius)
         relative_positions = np.array(
                 self.ecosystem.prey_tree.data[collided_with,:] - self.position)
-        relative_positions = relative_positions[np.logical_and(relative_positions[:,0]!=0,relative_positions[:,1]!=0,)]
+        relative_positions = relative_positions[np.logical_and(relative_positions[:,0]!=0,relative_positions[:,1]!=0)]
         self.velocity += self.acceleration * dt
         velocity_norm = quick_norm(self.velocity)
         number_of_collisions = np.size(relative_positions)/2
         if number_of_collisions > 0:
             self.maximum_speed = self.minimum_speed
+            
             if (number_of_collisions == 1):
                 collision_center_of_mass = (self.position + 0.5*relative_positions.flatten())
             else:
                  collision_center_of_mass = self.position + 0.5*np.sum(relative_positions,axis=0)
+
             distance_to_center = quick_norm(collision_center_of_mass - self.position)
             overlap = self.ecosystem.prey_radius - distance_to_center
             collision_acc = ( - 0.01*(collision_center_of_mass - self.position)*
@@ -442,36 +444,42 @@ class Predator(Boid):
         returning the boid itself if a predator looks up neighbours in the 
         predator_tree.
         """
-        collided_with_predator = self.find_neighbours(self.ecosystem.predator_tree,
-            2*self.ecosystem.predator_radius)
 
         collided_with_prey = self.find_neighbours(self.ecosystem.prey_tree,
               self.ecosystem.predator_radius + self.ecosystem.prey_radius)
+
+        collided_with_predator = self.find_neighbours(self.ecosystem.predator_tree,
+            2*self.ecosystem.predator_radius)
+        relative_positions = np.array(
+                self.ecosystem.predator_tree.data[collided_with_predator,:] - self.position)
+        relative_positions = relative_positions[np.logical_and(relative_positions[:,0]!=0,relative_positions[:,1]!=0)]
             
         self.velocity += self.acceleration * dt
-        number_of_predator_collisions = len(collided_with_predator)-1
         velocity_norm = quick_norm(self.velocity)
+        number_of_predator_collisions = np.size(relative_positions)/2
         if number_of_predator_collisions > 0:
             self.maximum_speed = self.minimum_speed
-            relative_positions = np.array(
-                self.ecosystem.predator_tree.data[collided_with_predator,:] - self.position)
-            relative_positions = relative_positions[((relative_positions != np.array([0,0])))]
+
             if (number_of_predator_collisions == 1):
-                collision_center_of_mass = self.position + 0.5*relative_positions
+                collision_center_of_mass = (self.position + 0.5*relative_positions.flatten())
             else:
                  collision_center_of_mass = self.position + 0.5*np.sum(relative_positions,axis=0)
+            
             distance_to_center = quick_norm(collision_center_of_mass - self.position)
             overlap = self.ecosystem.predator_radius - distance_to_center
-            collision_acc = ( - 0.001*(collision_center_of_mass - self.position)*
+            collision_acc = ( - 0.01*(collision_center_of_mass - self.position)*
                 np.exp(0.1*overlap)/distance_to_center)
             self.velocity += collision_acc * dt
             
         elif len(collided_with_prey) > 0:
             self.maximum_speed = self.minimum_speed
             self.kill_count += len(collided_with_prey)
+
         elif(self.maximum_speed < self.ecosystem.predator_maximum_speed):
             self.maximum_speed += self.ecosystem.predator_collision_speed_rebound
+        
         velocity_norm = quick_norm(self.velocity)
+
         if velocity_norm > self.maximum_speed:
             self.velocity = self.velocity*(self.maximum_speed/velocity_norm)
 
@@ -546,7 +554,10 @@ class Predator(Boid):
         
     @property
     def fitness(self):
-        return self.kill_count
+        if (self.age == 0):
+            return 0
+        else:
+            return self.kill_count/self.age
 
     @property
     def killed(self):
