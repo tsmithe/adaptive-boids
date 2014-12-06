@@ -120,47 +120,32 @@ class Ecosystem:
             b.age += self.dt
 
     def roulette_selection(self,weights):
-        total = 0
-        new_weights = []
-        for i, w in enumerate(weights):
-            new_weights.append((i, w))
-            total += w
-        r = np.random.random() * total
-        test = 0
-        for w in sorted(new_weights, key=lambda x: x[1]):
-            test += w[1]
-            if r < test: return w[0]
+        cumulative = np.cumsum(weights)
+        r = np.random.random() * cumulative[-1]
+        for i, w in enumerate(cumulative):
+            if r < w: return i
+
+    def kill_boids(self, boids):
+        # Kill boids
+        number_of_killed = 0
+        for b in boids:
+            if (b.killed == True):
+                boids.remove(b)
+                number_of_killed += 1
+        for i in range(number_of_killed):                
+            fitness_values = [b.fitness for b in boids]
+            parent = self.roulette_selection(fitness_values)
+            child = type(boids[0])(self)
+            child.weights = boids[parent].weights
+            child.weights = child.mutate()
+            boids.append(child)
 
     def kill_prey(self):
-        # Kill prey
-        number_of_killed = 0
-        for b in self.prey:
-            if (b.killed == True):
-                self.prey.remove(b)
-                number_of_killed += 1
-        for i in np.arange(number_of_killed):                
-            fitness_values = [1/(b.age+0.01) for b in self.prey]
-            parent = self.roulette_selection(fitness_values)
-            child = Prey(self)
-            child.weights = self.prey[parent].weights
-            child.weights = child.mutate()
-            self.prey.append(child)
-                
-    def kill_predators(self):
-        # Kill predators
-        number_of_killed = 0
-        for b in self.predators:
-            if (b.killed == True):
-                self. predators.remove(b)
-                number_of_killed += 1
-        for i in np.arange(number_of_killed):
-            fitness_values = [1/(b.kill_count+0.01) for b in self.predators]
-            parent = self.roulette_selection(fitness_values)
-            child = Predator(self)
-            child.weights = self.predators[parent].weights
-            child.weights = child.mutate()
-            self.predators.append(child)
+        self.kill_boids(self.prey)
 
+    def kill_predators(self):
+        self.kill_boids(self.predators)
+        
 class Boid:
 
     def __init__(self, ecosystem):
@@ -174,6 +159,10 @@ class Boid:
 
     @property
     def sensors(self):
+        raise NotImplementedError("Should be specialised by the subclass")
+
+    @property
+    def fitness(self):
         raise NotImplementedError("Should be specialised by the subclass")
 
     @property
@@ -401,6 +390,10 @@ class Prey(Boid):
         return force
 
     @property
+    def fitness(self):
+        return self.age
+    
+    @property
     def killed(self):
         """
         Return a boolean value describing whether boid is dead.
@@ -555,6 +548,10 @@ class Predator(Boid):
         force = np.dot(self.weights,sensors)/self.number_of_weights
         return force
         
+    @property
+    def fitness(self):
+        return self.kill_count
+
     @property
     def killed(self):
         """
