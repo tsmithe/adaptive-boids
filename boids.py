@@ -121,11 +121,13 @@ class Ecosystem:
 
     def roulette_selection(self,weights):
         total = 0
-        r = np.random.random()
         for i, w in enumerate(weights):
             total += w
-        for i, w in enumerate(sorted(weights, True)):
-            if r * total < w: return i
+        r = np.random.random() * total
+        test = 0
+        for i, w in enumerate(sorted(weights, reverse=True)):
+            test += w
+            if r < test: return i
 
     def kill_prey(self):
         # Kill prey
