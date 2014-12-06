@@ -121,13 +121,15 @@ class Ecosystem:
 
     def roulette_selection(self,weights):
         total = 0
+        new_weights = []
         for i, w in enumerate(weights):
+            new_weights.append((i, w))
             total += w
         r = np.random.random() * total
         test = 0
-        for i, w in enumerate(sorted(weights, reverse=True)):
-            test += w
-            if r < test: return i
+        for w in sorted(new_weights, key=lambda x: x[1]):
+            test += w[1]
+            if r < test: return w[0]
 
     def kill_prey(self):
         # Kill prey
@@ -308,7 +310,7 @@ class Prey(Boid):
                  collision_center_of_mass = self.position + 0.5*np.sum(relative_positions,axis=0)
             distance_to_center = quick_norm(collision_center_of_mass - self.position)
             overlap = self.ecosystem.prey_radius - distance_to_center
-            collision_acc = ( - 0.001*(collision_center_of_mass - self.position)*
+            collision_acc = ( - 0.01*(collision_center_of_mass - self.position)*
                 np.exp(0.1*overlap)/distance_to_center)
             self.velocity += collision_acc * dt
             
