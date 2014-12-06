@@ -152,7 +152,7 @@ class Boid:
         self.ecosystem = ecosystem
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
-        self.age = 0
+        self.age = 1
 #        self.creep_range = 1.0
 #        self.mutation_probability = 0.5
 
@@ -433,7 +433,7 @@ class Predator(Boid):
         self.position = self.initialize_position()        
         self.velocity = self.initialize_velocity()
         
-        self.kill_count = 0
+        self.kill_count = 1
 
     def update_velocity(self, dt):
         """
