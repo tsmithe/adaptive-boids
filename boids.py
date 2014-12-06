@@ -11,37 +11,64 @@ import random
 
 import fast_boids
 from fast_boids import quick_norm
+"""
+    ecosystem = Ecosystem(WORLD_RADIUS, NUM_PREY, NUM_PREDATORS,
+                          PREY_RADIUS, PREDATOR_RADIUS,
+                          PREY_MAX_VELOCITY, PREDATOR_MAX_VELOCITY,
+                          PREY_MIN_VELOCITY, PREDATOR_MIN_VELOCITY,
+                          PREY_PERCEPTION_LENGTH, PREDATOR_PERCEPTION_LENGTH,
+                          PREY_PERCEPTION_ANGLE, PREDATOR_PERCEPTION_ANGLE,
+                          PREY_TOO_CLOSE_RADIUS, PREDATOR_TOO_CLOSE_RADIUS,
+                          PREY_NETWORK_WEIGHTS, PREDATOR_NETWORK_WEIGHTS,
+                          PREY_LIFESPAN, PREDATOR_LIFESPAN,
+                          PREY_WEIGHT, PREDATOR_WEIGHT,
+                          FEEDING_AREA_RADIUS, FEEDING_AREA_POSITION, DT,
+                          CREEP_RANGE, MUTATION_PROBABILITY,
+                          NUMBER_OF_COLLISION_SPEED_INCREASE_STEPS,)
+"""
 
 class Ecosystem:
     def __init__(self, world_radius, num_prey, num_predators,
                  prey_radius, predator_radius,
-                 feeding_area_radius, feeding_area_position, dt,
+                 prey_maximum_speed, predator_maxmimum_speed,
+                 prey_minimum_speed, predator_minimum_speed,
+                 prey_perception_length, predator_perception_length,
+                 prey_perception_angle, predator_perception_angle,
+                 prey_too_close_radius, predator_too_close_radius,
                  prey_network_weights, predator_network_weights,
-                 prey_lifespan, predator_lifespan):
+                 prey_lifespan, predator_lifespan, 
+                 prey_weight, predator_weight,
+                 feeding_area_radius, feeding_area_position, dt,
+                 creep_range, mutation_probability,
+                 num_collision_speed_increase_steps):
         self.dt = dt
         self.world_radius = world_radius
         self.num_prey = num_prey
         self.num_predators = num_predators
         self.feeding_area_position = np.asarray(feeding_area_position)
         self.feeding_area_radius = feeding_area_radius
+        self.creep_range = creep_range
+        self.mutation_probability = mutation_probability
 
         self.prey_radius = prey_radius
-        self.prey_maximum_speed = 2.0
-        self.prey_minimum_speed = 0.1
-        self.prey_perception_length = 10*self.prey_radius
-        self.prey_perception_angle = np.pi/2
-        self.prey_too_close_radius = 3*self.prey_radius
-        self.prey_weight = 1.0
+        self.prey_maximum_speed = prey_maximum_speed
+        self.prey_minimum_speed = prey_minimum_speed
+        self.prey_collision_speed_rebound = (self.prey_maximum_speed-self.prey_minimum_speed)/num_collision_speed_increase_steps
+        self.prey_perception_length = prey_perception_length
+        self.prey_perception_angle = prey_perception_angle
+        self.prey_too_close_radius = prey_too_close_radius
+        self.prey_weight = prey_weight
         self.prey_lifespan = prey_lifespan
         self.prey_network_weights = prey_network_weights
 
         self.predator_radius = predator_radius
-        self.predator_maximum_speed = 2.5
-        self.predator_minimum_speed = 0.1
-        self.predator_perception_length = 2*self.world_radius
-        self.predator_perception_angle = np.pi
-        self.predator_too_close_radius = 3*self.predator_radius
-        self.predator_weight = 2.0
+        self.predator_maximum_speed = predator_maxmimum_speed
+        self.predator_minimum_speed = predator_minimum_speed
+        self.predator_collision_speed_rebound = (self.predator_maximum_speed-self.predator_minimum_speed)/num_collision_speed_increase_steps
+        self.predator_perception_length = predator_perception_length
+        self.predator_perception_angle = predator_perception_angle
+        self.predator_too_close_radius = predator_too_close_radius
+        self.predator_weight = predator_weight
         self.predator_lifespan = predator_lifespan
         self.predator_network_weights = predator_network_weights
         
@@ -87,7 +114,7 @@ class Ecosystem:
             else:
                 b.eating = False
                 if b.stamina > 0:
-                    b.stamina -=0.01*self.dt
+                    b.stamina -= 0.01*self.dt
 
     def update_age(self):
         for b in self.predators + self.prey:
@@ -139,8 +166,8 @@ class Boid:
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
         self.age = 0
-        self.creep_range = 1.0
-        self.mutation_probability = 0.5
+#        self.creep_range = 1.0
+#        self.mutation_probability = 0.5
 
 
     @property
@@ -202,8 +229,8 @@ class Boid:
         network_size = np.size(self.weights)
         mutated_weights = self.weights.copy()
         for i in np.arange(network_size):
-            if (np.random.random() < self.mutation_probability):
-                mutated_weights[i] -= 2*self.creep_range*(np.random.random()-0.5)
+            if (np.random.random() < self.ecosystem.mutation_probability):
+                mutated_weights[i] -= 2*self.ecosystem.creep_range*(np.random.random()-0.5)
         return mutated_weights
         
     def find_neighbours(self, tree, radius):
@@ -269,8 +296,24 @@ class Prey(Boid):
         collided_with = self.find_neighbours(self.ecosystem.prey_tree, 2*self.ecosystem.prey_radius)
         self.velocity += self.acceleration * dt
         velocity_norm = quick_norm(self.velocity)
-        if len(collided_with)-1 > 0:
-            self.velocity = self.velocity/velocity_norm*self.minimum_speed
+        number_of_collisions = len(collided_with)-1
+        if number_of_collisions > 0:
+            self.maximum_speed = self.minimum_speed
+            relative_positions = np.array(
+                self.ecosystem.prey_tree.data[collided_with,:] - self.position)
+            relative_positions = relative_positions[((relative_positions != np.array([0,0])))]
+            if (number_of_collisions == 1):
+                collision_center_of_mass = self.position + 0.5*relative_positions
+            else:
+                 collision_center_of_mass = self.position + 0.5*np.sum(relative_positions,axis=0)
+            distance_to_center = quick_norm(collision_center_of_mass - self.position)
+            overlap = self.ecosystem.prey_radius - distance_to_center
+            collision_acc = ( - 0.001*(collision_center_of_mass - self.position)*
+                np.exp(0.1*overlap)/distance_to_center)
+            self.velocity += collision_acc * dt
+            
+        elif (self.maximum_speed < self.ecosystem.prey_maximum_speed):
+            self.maximum_speed += self.ecosystem.prey_collision_speed_rebound
         velocity_norm = quick_norm(self.velocity)
         if (velocity_norm > self.maximum_speed):
             self.velocity = self.velocity*(self.maximum_speed/velocity_norm)
@@ -338,7 +381,7 @@ class Prey(Boid):
             relative_predator_positions = np.array(
                 self.ecosystem.predator_tree.data[visible_predator_index,:] - self.position)
             if (number_of_visible_predators == 1):
-                distance_to_predator = quick_norm(relative_predator_positions[0])
+                distance_to_predator = quick_norm(relative_predator_positions.flatten())
                 direction_to_predator = (relative_predator_positions/distance_to_predator)
             else:
                 distance_to_predator = np.linalg.norm(relative_predator_positions,axis=1)
@@ -415,12 +458,28 @@ class Predator(Boid):
               self.ecosystem.predator_radius + self.ecosystem.prey_radius)
             
         self.velocity += self.acceleration * dt
+        number_of_predator_collisions = len(collided_with_predator)-1
         velocity_norm = quick_norm(self.velocity)
-        if len(collided_with_predator)-1 > 0:
-            self.velocity = self.velocity/velocity_norm*self.minimum_speed
+        if number_of_predator_collisions > 0:
+            self.maximum_speed = self.minimum_speed
+            relative_positions = np.array(
+                self.ecosystem.predator_tree.data[collided_with_predator,:] - self.position)
+            relative_positions = relative_positions[((relative_positions != np.array([0,0])))]
+            if (number_of_predator_collisions == 1):
+                collision_center_of_mass = self.position + 0.5*relative_positions
+            else:
+                 collision_center_of_mass = self.position + 0.5*np.sum(relative_positions,axis=0)
+            distance_to_center = quick_norm(collision_center_of_mass - self.position)
+            overlap = self.ecosystem.predator_radius - distance_to_center
+            collision_acc = ( - 0.001*(collision_center_of_mass - self.position)*
+                np.exp(0.1*overlap)/distance_to_center)
+            self.velocity += collision_acc * dt
+            
         elif len(collided_with_prey) > 0:
-            self.velocity = self.velocity/velocity_norm*self.minimum_speed
+            self.maximum_speed = self.minimum_speed
             self.kill_count += len(collided_with_prey)
+        elif(self.maximum_speed < self.ecosystem.predator_maximum_speed):
+            self.maximum_speed += self.ecosystem.predator_collision_speed_rebound
         velocity_norm = quick_norm(self.velocity)
         if velocity_norm > self.maximum_speed:
             self.velocity = self.velocity*(self.maximum_speed/velocity_norm)
