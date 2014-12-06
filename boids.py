@@ -153,9 +153,6 @@ class Boid:
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
         self.age = 1
-#        self.creep_range = 1.0
-#        self.mutation_probability = 0.5
-
 
     @property
     def sensors(self):
@@ -285,16 +282,16 @@ class Prey(Boid):
         the boid itself as a collision if a prey does a lookup in the prey_tree.
         """
         collided_with = self.find_neighbours(self.ecosystem.prey_tree, 2*self.ecosystem.prey_radius)
+        relative_positions = np.array(
+                self.ecosystem.prey_tree.data[collided_with,:] - self.position)
+        relative_positions = relative_positions[np.logical_and(relative_positions[:,0]!=0,relative_positions[:,1]!=0,)]
         self.velocity += self.acceleration * dt
         velocity_norm = quick_norm(self.velocity)
-        number_of_collisions = len(collided_with)-1
+        number_of_collisions = np.size(relative_positions)/2
         if number_of_collisions > 0:
             self.maximum_speed = self.minimum_speed
-            relative_positions = np.array(
-                self.ecosystem.prey_tree.data[collided_with,:] - self.position)
-            relative_positions = relative_positions[((relative_positions != np.array([0,0])))]
             if (number_of_collisions == 1):
-                collision_center_of_mass = self.position + 0.5*relative_positions
+                collision_center_of_mass = (self.position + 0.5*relative_positions.flatten())
             else:
                  collision_center_of_mass = self.position + 0.5*np.sum(relative_positions,axis=0)
             distance_to_center = quick_norm(collision_center_of_mass - self.position)
@@ -308,7 +305,6 @@ class Prey(Boid):
         velocity_norm = quick_norm(self.velocity)
         if (velocity_norm > self.maximum_speed):
             self.velocity = self.velocity*(self.maximum_speed/velocity_norm)
-
     @property
     def sensors(self):
         """
