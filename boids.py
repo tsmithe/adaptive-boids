@@ -7,7 +7,6 @@ Created on Wed Nov 26 16:00:03 2014
 
 import numpy as np
 from scipy.spatial import cKDTree
-import random
 
 import fast_boids
 from fast_boids import quick_norm
@@ -122,12 +121,11 @@ class Ecosystem:
 
     def roulette_selection(self,weights):
         total = 0
-        winner = 0
+        r = np.random.random()
         for i, w in enumerate(weights):
             total += w
-            if random.random() * total < w:
-                winner = i
-        return winner
+        for i, w in enumerate(sorted(weights, True)):
+            if r * total < w: return i
 
     def kill_prey(self):
         # Kill prey
