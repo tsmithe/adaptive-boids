@@ -60,7 +60,7 @@ def find_visible_neighbours(np.ndarray[np.float64_t, ndim=2] positions,
                          (relative_norm * my_velocity_norm))
             if angle < 0: angle = -angle
 
-            if angle < perception_angle:
+            if angle <= perception_angle:
                 visible_array[j] = idx
 
     # Copy visible neighbour indices back to a Python set
