@@ -492,41 +492,36 @@ class Predator(Boid):
         """
         sensors = np.zeros([self.number_of_weights,2])
         
-        # Find visible prey.
-        visible_prey_index = self.find_visible_neighbours(
-            self.ecosystem.prey_tree, self.perception_length + self.ecosystem.prey_radius)
-        number_of_visible_prey = np.size(visible_prey_index)
-    
-        # Target prey position sensor and target velocity. Chooses the prey 
-        # that is closest to the predator.        
-        if (number_of_visible_prey > 0):
-            relative_prey_positions = np.array(
-                self.ecosystem.prey_tree.data[visible_prey_index,:] - self.position)
-            prey_distance = np.linalg.norm(relative_prey_positions, axis=1)
-            target_prey_index = visible_prey_index[np.argmin(prey_distance)]
-            sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index,:] - self.position
-            sensors[1,:] = self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
+         # Target prey position sensor and target velocity. Chooses the prey 
+        # that is closest to the predator.
+        
+        (target_prey_distance, target_prey_index) =\
+            self.ecosystem.prey_tree.query(self.position)
+        sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index,:] - self.position
+        sensors[1,:] =\
+            self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
 
+        fellow_predator_indices =\
+         self.ecosystem.predator_tree.query_ball_point(
+            self.position, self.perception_length)
+        relative_predator_positions =\
+            np.array(self.ecosystem.predator_tree.data[
+                fellow_predator_indices,:]-self.position)
+        relative_predator_velocities =\
+            np.array(self.ecosystem.predator_velocities[
+                fellow_predator_indices]-self.velocity)
+        sensors[2,:] =\
+            (np.sum(relative_predator_positions,axis=0)
+                /self.ecosystem.num_predators)
+        sensors[3,:] =\
+            (np.sum(relative_predator_velocities,axis=0)
+                /self.ecosystem.num_predators)
         
-        # Find visible predators.
-        visible_predator_index = self.find_visible_neighbours(
-            self.ecosystem.predator_tree, self.perception_length + self.ecosystem.predator_radius)
-        number_of_visible_predators = np.size(visible_predator_index)
-        
-        # Fellow predator position and velocity sensor values.
-        if (number_of_visible_predators > 0):
-            relative_predator_positions = np.array(
-                self.ecosystem.predator_tree.data[visible_predator_index,:]-self.position)
-            relative_predator_velocities = np.array(
-                self.ecosystem.predator_velocities[visible_predator_index]-self.velocity)
-            if (number_of_visible_predators == 1):
-                sensors[2,:] = relative_predator_positions
-                sensors[3,:] = relative_predator_velocities
-            else:
-                sensors[2,:] = (np.sum(relative_predator_positions,axis=0)/
-                    number_of_visible_predators)
-                sensors[3,:] = (np.sum(relative_predator_velocities,axis=0)/
-                    number_of_visible_predators)
+        ''' # "too-close" predator sensor.
+        too_close_indices =\
+         self.ecosystem.predator_tree.query_ball_point(
+            self.position, self.too_close_radius+self.ecosystem.predator_radius)
+        number_of_too_close = np.size(too_close_indices) '''
                     
         # "too-close" predator sensor.
         too_close_index = self.find_visible_neighbours(
@@ -546,7 +541,7 @@ class Predator(Boid):
                 too_close_direction = (
                     relative_too_close_positions/too_close_dist[:,np.newaxis])
             sensors[4,:] = (np.dot(((self.too_close_radius/too_close_dist)-1),
-                too_close_direction)/number_of_visible_predators)
+                too_close_direction)/self.ecosystem.num_predators)
     
         # Total force.           
         force = np.dot(self.weights,sensors)/self.number_of_weights

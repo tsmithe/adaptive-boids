@@ -67,7 +67,7 @@ Prey:
 # PREDATOR_NETWORK_WEIGHTS = 2*np.random.random(5)-1
 
 PREDATOR_NETWORK_WEIGHTS = np.array([1.0, 1.0, 0.0, 0.0, -1.0])
-PREY_NETWORK_WEIGHTS = np.array([1.0, 1.0, -1.0, -0.0, 0.0])
+PREY_NETWORK_WEIGHTS = np.array([1.0, 1.0, -1.0, -1.0, 0.0])
 
 def export_stats(prey_statistics, predator_statistics, ecosystem):
     prey_statistics.update_data(ecosystem.prey, ecosystem.prey_tree)
