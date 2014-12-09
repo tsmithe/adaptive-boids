@@ -677,11 +677,11 @@ class Predator(Boid):
         
     @property
     def fitness(self):
-        return self.kill_count
-#        if (self.age == 0):
-#            return 0
-#        else:
-#            return self.kill_count/self.age
+#        return self.kill_count
+        if (self.age == 0):
+            return 0
+        else:
+            return self.kill_count/self.age
 
     @property
     def killed(self):
