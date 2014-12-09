@@ -21,6 +21,7 @@ PLOT_MAXIMUM = 1.01*WORLD_RADIUS
 FRAME_INTERVAL = 50 # NB: Matplotlib doesn't seem to go much faster...
 EVERY_NTH_FRAME = 1 # Only show every Nth frame (frames are enumerable)
 START_AT_T = 0 # Start at t = ? -- counting from 0
+STOP_AT_T = 1000
 
 def animate(i, fig, ax, text,
             prey_graph, prey_quivers,
@@ -51,6 +52,8 @@ def collect_data(csv_reader):
         if i*DUMP_STATS_INTERVAL*DT < START_AT_T:
             i += 1
             continue
+        if i*DUMP_STATS_INTERVAL*DT > STOP_AT_T:
+            break
         positions = np.array(list(map(lambda x: float(x), row)))
         num_boids = positions.size / 2
         positions = positions.reshape(num_boids, 2)

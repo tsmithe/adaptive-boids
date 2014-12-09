@@ -15,35 +15,38 @@ SEED = 0
 
 DT = 1
 
-RUN_TIME = 100000 # in units of time
+RUN_TIME = 20000 # in units of time
 DUMP_STATS_INTERVAL = 5 # in units of *iterations* (one iteration = 1 DT time)
 
-WORLD_RADIUS = 500
+WORLD_RADIUS = 140
 NUM_PREY = 30
 NUM_PREDATORS = 3
 
 PREY_RADIUS = 2.0
-PREY_LIFESPAN = 20000
-PREY_PERCEPTION_LENGTH = 100.0
-PREY_PERCEPTION_ANGLE = np.pi*3/2
-PREY_TOO_CLOSE_RADIUS = 10.0
-PREY_MAX_VELOCITY = 2.0
+PREY_PERCEPTION_LENGTH = 20.0
+PREY_PERCEPTION_ANGLE = np.pi*3.0/4.0
+PREY_TOO_CLOSE_RADIUS = 5.0
+PREY_MAX_STEERING_ANGLE = np.pi/4.0
+PREY_MAX_VELOCITY = 0.5
 PREY_MIN_VELOCITY = 0.1
 PREY_WEIGHT = 1.0
+PREY_LIFESPAN = 8000
 
 PREDATOR_RADIUS = 2.0
-PREDATOR_LIFESPAN = 11000
-PREDATOR_PERCEPTION_LENGTH = 2*WORLD_RADIUS
+PREDATOR_PERCEPTION_LENGTH = 20.0
 PREDATOR_PERCEPTION_ANGLE = np.pi
-PREDATOR_TOO_CLOSE_RADIUS = 10
-PREDATOR_MAX_VELOCITY = 2.1
+PREDATOR_TOO_CLOSE_RADIUS = 5.0
+PREDATOR_MAX_STEERING_ANGLE = np.pi
+PREDATOR_MAX_VELOCITY = 0.8
 PREDATOR_MIN_VELOCITY = 0.1
 PREDATOR_WEIGHT = 1.0
+PREDATOR_LIFESPAN = 2000
 
-NUMBER_OF_COLLISION_SPEED_INCREASE_STEPS = 100
+COLLISION_RECOVERY_RATE = 0.01
+WEIGHTS_DISTRIBUTION_STD = 0.5
 
-CREEP_RANGE = 0.05
-MUTATION_PROBABILITY = 0.2 
+CREEP_RANGE = 0.01
+MUTATION_PROBABILITY = 1.0
 
 FEEDING_AREA_RADIUS = 5.0
 FEEDING_AREA_POSITION = (50, 50)
@@ -66,8 +69,16 @@ Prey:
 # PREY_NETWORK_WEIGHTS = 2*np.random.random(5)-1
 # PREDATOR_NETWORK_WEIGHTS = 2*np.random.random(5)-1
 
-PREDATOR_NETWORK_WEIGHTS = np.array([1.0, 1.0, 0.0, 0.0, -1.0])
-PREY_NETWORK_WEIGHTS = np.array([1.0, 1.0, -1.0, -1.0, 0.0])
+
+#PREDATOR_NETWORK_WEIGHTS = np.array([0.5, 0.2, -0.05, - 0.05, -0.2])
+#PREY_NETWORK_WEIGHTS = np.array([0.3, 0.3, -0.3, -0.7, 0.0])
+PREDATOR_NETWORK_WEIGHTS = 0.5*np.array([np.random.random(), np.random.random(),
+                                     0.0, 0.0,
+                                     -np.random.random()])
+PREY_NETWORK_WEIGHTS = 0.5*np.array([np.random.random(), np.random.random(),
+                                   -np.random.random(), -np.random.random(),
+                                    0])
+
 
 def export_stats(prey_statistics, predator_statistics, ecosystem):
     prey_statistics.update_data(ecosystem.prey, ecosystem.prey_tree)
@@ -84,6 +95,7 @@ def main():
                           PREY_RADIUS, PREDATOR_RADIUS,
                           PREY_MAX_VELOCITY, PREDATOR_MAX_VELOCITY,
                           PREY_MIN_VELOCITY, PREDATOR_MIN_VELOCITY,
+                          PREY_MAX_STEERING_ANGLE, PREDATOR_MAX_STEERING_ANGLE,
                           PREY_PERCEPTION_LENGTH, PREDATOR_PERCEPTION_LENGTH,
                           PREY_PERCEPTION_ANGLE, PREDATOR_PERCEPTION_ANGLE,
                           PREY_TOO_CLOSE_RADIUS, PREDATOR_TOO_CLOSE_RADIUS,
@@ -92,7 +104,8 @@ def main():
                           PREY_WEIGHT, PREDATOR_WEIGHT,
                           FEEDING_AREA_RADIUS, FEEDING_AREA_POSITION, DT,
                           CREEP_RANGE, MUTATION_PROBABILITY,
-                          NUMBER_OF_COLLISION_SPEED_INCREASE_STEPS,)
+                          COLLISION_RECOVERY_RATE,
+                          WEIGHTS_DISTRIBUTION_STD)
 
     prey_statistics = StatisticsHelper('prey_', False,
                                        True, True, True)
