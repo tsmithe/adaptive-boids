@@ -10,8 +10,6 @@ from scipy.spatial import cKDTree
 import fast_boids
 from fast_boids import quick_norm
 
-SEED = 0
-np.random.seed(SEED)
 
 class Ecosystem:
     def __init__(self, world_radius, num_prey, num_predators,
@@ -19,6 +17,7 @@ class Ecosystem:
                  prey_max_speed, predator_max_speed,
                  prey_min_speed, predator_min_speed,
                  prey_max_steering_angle, predator_max_steering_angle,
+                 prey_max_force, predator_max_force,
                  prey_perception_length, predator_perception_length,
                  prey_perception_angle, predator_perception_angle,
                  prey_too_close_radius, predator_too_close_radius,
@@ -44,6 +43,7 @@ class Ecosystem:
         self.prey_min_speed = prey_min_speed
         self.prey_collision_speed_rebound = (self.prey_max_speed-self.prey_min_speed)*collision_recovery_rate
         self.prey_max_steering_angle = prey_max_steering_angle
+        self.prey_max_force = prey_max_force
         self.prey_perception_length = prey_perception_length
         self.prey_perception_angle = prey_perception_angle
         self.prey_too_close_radius = prey_too_close_radius
@@ -56,6 +56,7 @@ class Ecosystem:
         self.predator_min_speed = predator_min_speed
         self.predator_collision_speed_rebound = (self.predator_max_speed-self.predator_min_speed)*collision_recovery_rate
         self.predator_max_steering_angle = predator_max_steering_angle
+        self.predator_max_force = predator_max_force
         self.predator_perception_length = predator_perception_length
         self.predator_perception_angle = predator_perception_angle
         self.predator_too_close_radius = predator_too_close_radius
@@ -217,8 +218,8 @@ class Boid:
             new_velocity = np.dot(rotation_matrix,new_velocity)
         return new_velocity
 
-    def Collide(self, new_velocity, tree, self_radius, collision_radius):
-        # Check if predator collided with other predator.
+    def collision_check(self, new_velocity, tree, self_radius, collision_radius):
+        # Check if boid collided with other boids in tree.
         collided_with = self.find_neighbours(tree, collision_radius)
         # Calculate relative position vectors from self to other boids in collision,
         # the boid itself is in this array.
@@ -226,33 +227,28 @@ class Boid:
         # Remove the boid iteslf from array.
         relative_positions = relative_positions[np.logical_and(relative_positions[:,0]!=0,relative_positions[:,1]!=0)]
             
-        # Check if predator collided with other boids
+        # Check if boid collided with other boids
         number_of_collisions = np.size(relative_positions)/2
         if number_of_collisions > 0:
             # Reduce maximum velocity
-            self.maximum_speed = self.minimum_speed
+            self.max_speed = self.min_speed
 
             if (number_of_collisions == 1):
                 # Collided with one other predator.
-                collision_center_of_mass = (self.position + 0.5*relative_positions.flatten())
+                distance_between_boids = quick_norm(relative_positions.flatten())
+                overlap = 2*self_radius - distance_between_boids
+                relative_unit_vector = relative_positions/distance_between_boids
+                collision_acc = -0.01*(relative_unit_vector)*np.exp(0.1*overlap)
+#                collision_center_of_mass = (self.position + 0.5*relative_positions.flatten())
             else:
-                # COllided with multiple predators.                
-                collision_center_of_mass = self.position + 0.5*np.sum(relative_positions,axis=0)
-            
-            # Calculate distance to collision of center of mass
-            distance_to_center = quick_norm(collision_center_of_mass - self.position)
-            # Calculate overlap between predator and collision center of mass.
-            overlap = self_radius - distance_to_center
-            
-            #Calculate repulsive acceleration.
-            collision_acc = ( - 0.01*(collision_center_of_mass - self.position)*
-                np.exp(0.1*overlap)/distance_to_center)
-            new_velocity += collision_acc * self.ecosystem.dt
+                # Collided with multiple predators.
+                distance_between_boids = np.linalg.norm(relative_positions, axis=1)
+                overlap = 2*self_radius - distance_between_boids
+                relative_unit_vector = relative_positions/distance_between_boids[:,np.newaxis]
+                collision_acc = np.sum(-0.01*(relative_unit_vector)*np.exp(0.1*overlap[:,np.newaxis]),axis=0)/number_of_collisions
                 
-        # If no collision, increase maximum speed in case it is lower than 
-        # its original value.
-        elif(self.maximum_speed < self.original_max_speed):
-            self.maximum_speed += self.collision_rebound_rate
+            collision_acc = collision_acc.flatten()
+            new_velocity += collision_acc * self.ecosystem.dt
 
         # Return new_velocity   
         return new_velocity
@@ -276,9 +272,9 @@ class Boid:
         angle = 2*np.pi*np.random.random()
         magnitude_temporary = np.random.random() + np.random.random()
         if (magnitude_temporary > 1):
-            magnitude = (2-magnitude_temporary)*self.maximum_speed
+            magnitude = (2-magnitude_temporary)*self.max_speed
         else:
-            magnitude = magnitude_temporary*self.maximum_speed
+            magnitude = magnitude_temporary*self.max_speed
         return np.array([magnitude*np.cos(angle), magnitude*np.sin(angle)])
 
     def mutate(self):
@@ -338,9 +334,9 @@ class Prey(Boid):
         
         self.number_of_weights = 6
         self.pick_weights_sd = self.ecosystem.weights_distribution_std
-        self.maximum_speed = self.ecosystem.prey_max_speed
+        self.max_speed = self.ecosystem.prey_max_speed
         self.original_max_speed = self.ecosystem.prey_max_speed
-        self.minimum_speed = self.ecosystem.prey_min_speed
+        self.min_speed = self.ecosystem.prey_min_speed
         self.max_steering_angle = self.ecosystem.prey_max_steering_angle
         self.perception_length = self.ecosystem.prey_perception_length
         self.perception_angle = self.ecosystem.prey_perception_angle
@@ -358,27 +354,34 @@ class Prey(Boid):
         """
         Checks if prey has collided with other prey. We don't have to check if
         has collided with predator since this is done in property killed.
-        If colided: keep current flight direction and set speed to self.minimum_speed.
+        If colided: keep current flight direction and set speed to self.min_speed.
         Else: calculate new acceleration and new velocity.
-        If new velocity > self.maximum_speed: Reduce speed to self.maximum_speed.
+        If new velocity > self.max_speed: Reduce speed to self.max_speed.
         The -1 in the len(collided_with) comes from the tree alwys returning
         the boid itself as a collision if a prey does a lookup in the prey_tree.
         """
-
+        # Increase maximum speed in case it is lower than its original value.
+        if(self.max_speed < self.original_max_speed):
+            self.max_speed += self.collision_rebound_rate
+            
         # Get acceleration from sensors and calculate wanted new velocity.
         new_velocity = self.velocity + self.acceleration * dt
         
        # Check for collisions and limit max speed and reduce current speed in case of collison.
-        new_velocity = self.Collide(new_velocity, self.ecosystem.prey_tree, 
+        new_velocity = self.collision_check(new_velocity, self.ecosystem.prey_tree, 
             self.ecosystem.prey_radius, 2*self.ecosystem.prey_radius)
             
         # Limit change of direction.
         new_velocity = self.limit_direction_change(new_velocity)
         velocity_norm = quick_norm(new_velocity)
         
-        # Limit speed to self.maximum_speed.
-        if (velocity_norm > self.maximum_speed):
-            new_velocity = new_velocity*(self.maximum_speed/velocity_norm)
+        # Check if boid is outside permieter. If so, limit speed.
+        if (quick_norm(self.position) > self.ecosystem.world_radius):
+            self.max_speed = self.min_speed
+        
+        # Limit speed to self.max_speed.
+        if (velocity_norm > self.max_speed):
+            new_velocity = new_velocity*(self.max_speed/velocity_norm)
         
         # Update velocity.
         self.velocity = new_velocity
@@ -472,6 +475,9 @@ class Prey(Boid):
             
 
         force = np.dot(self.weights,sensors)/self.number_of_weights
+        force_norm = quick_norm(force)
+        if (force_norm > self.ecosystem.prey_max_force):
+            force *= self.ecosystem.prey_max_force/force_norm
         return force
 
     @property
@@ -486,10 +492,21 @@ class Prey(Boid):
         """
         collided_with = self.find_neighbours(self.ecosystem.predator_tree,
             self.ecosystem.prey_radius + self.ecosystem.predator_radius)
+            
+        # Check if outise perimeter
+        radial_position = quick_norm(self.position)
+        how_far_out = (radial_position + self.ecosystem.predator_radius - 
+            self.ecosystem.world_radius)
+
         
         if len(collided_with) > 0:
+            # Kill if eaten by predator
+            return True
+        elif (how_far_out > 0.5):
+            # Kill if too far outside. (0.5 is apparently far enough according to Sayers)
             return True
         elif (self.age > self.life_span):
+            # Kill if too old.
             return True
         else:
             return False
@@ -507,9 +524,9 @@ class Predator(Boid):
 
         self.number_of_weights = 6
         self.pick_weights_sd = self.ecosystem.weights_distribution_std
-        self.maximum_speed = self.ecosystem.predator_max_speed
+        self.max_speed = self.ecosystem.predator_max_speed
         self.original_max_speed = self.ecosystem.predator_max_speed
-        self.minimum_speed = self.ecosystem.predator_min_speed
+        self.min_speed = self.ecosystem.predator_min_speed
         self.max_steering_angle = self.ecosystem.predator_max_steering_angle
         self.perception_length = self.ecosystem.predator_perception_length
         self.perception_angle = self.ecosystem.predator_perception_angle
@@ -529,13 +546,17 @@ class Predator(Boid):
         """
         Checks if prey has collided with other prey. We don't have to check if
         has collided with predator since this is done in property killed.
-        If colided: keep current flight direction and set speed to self.minimum_speed.
+        If colided: keep current flight direction and set speed to self.min_speed.
         Else: calculate new acceleration and new velocity.
-        If new velocity > self.maximum_speed: Reduce speed to self.maximum_speed.
+        If new velocity > self.max_speed: Reduce speed to self.max_speed.
         The -1 in len(collided_with_predator)-1 comes from the tree always 
         returning the boid itself if a predator looks up neighbours in the 
         predator_tree.
         """
+        
+        # Increase maximum speed in case it is lower than its original value.
+        if(self.max_speed < self.original_max_speed):
+            self.max_speed += self.collision_rebound_rate
 
         # Get acceleration from sensors
         new_velocity = self.velocity + self.acceleration * dt        
@@ -544,20 +565,24 @@ class Predator(Boid):
         collided_with_prey = self.find_neighbours(self.ecosystem.prey_tree,
               self.ecosystem.predator_radius + self.ecosystem.prey_radius)
         if len(collided_with_prey) > 0:
-            self.maximum_speed = self.minimum_speed
+            self.max_speed = self.min_speed
             self.kill_count += len(collided_with_prey)
             
         # Check for collisions and limit max speed and reduce current speed in case of collison.
-        new_velocity = self.Collide(new_velocity, self.ecosystem.predator_tree, 
+        new_velocity = self.collision_check(new_velocity, self.ecosystem.predator_tree, 
             self.ecosystem.predator_radius, 2*self.ecosystem.predator_radius)
             
         # Limit change of direction.
         new_velocity = self.limit_direction_change(new_velocity)
         velocity_norm = quick_norm(new_velocity)
         
-        # Limit velocity to self.maximum_speed.
-        if velocity_norm > self.maximum_speed:
-            new_velocity = new_velocity*(self.maximum_speed/velocity_norm)
+        # Check if boid is outside permieter. If so, limit speed.
+        if (quick_norm(self.position) > self.ecosystem.world_radius):
+            self.max_speed = self.min_speed
+        
+        # Limit velocity to self.max_speed.
+        if velocity_norm > self.max_speed:
+            new_velocity = new_velocity*(self.max_speed/velocity_norm)
         
         # Update velocity
         self.velocity = new_velocity
@@ -599,15 +624,19 @@ class Predator(Boid):
         sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index,:] - self.position
         sensors[1,:] = self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
 
-        # Fellow predator sensors
+        # Fellow predator sensors.
         if ((self.perception_angle < np.pi) | (self.perception_length < 2*self.ecosystem.world_radius)):            
+            # Find visible predators.
             visible_predator_index = self.find_visible_neighbours(
                 self.ecosystem.predator_tree, self.perception_length + self.ecosystem.predator_radius)
+            # Number of visible predators
             number_of_visible_predators = np.size(visible_predator_index)            
                 # Fellow predator position and velocity sensor values.
             if (number_of_visible_predators > 0):
+                # Relative positions.
                 relative_predator_positions = np.array(
                     self.ecosystem.predator_tree.data[visible_predator_index,:]-self.position)
+                # Relative velocities.
                 relative_predator_velocities = np.array(
                     self.ecosystem.predator_velocities[visible_predator_index,:]-self.velocity)
                 if (number_of_visible_predators == 1):
@@ -628,18 +657,11 @@ class Predator(Boid):
             relative_predator_velocities = (
                 np.array(self.ecosystem.predator_velocities[fellow_predator_indices,:] - 
                 self.velocity))
-            sensors[2,:] = (
-                (np.sum(relative_predator_positions,axis=0)
-                /self.ecosystem.num_predators))
-            sensors[3,:] = (
-                (np.sum(relative_predator_velocities,axis=0)
-                /self.ecosystem.num_predators))
+            sensors[2,:] = ((np.sum(relative_predator_positions,axis=0)/
+                self.ecosystem.num_predators))
+            sensors[3,:] = ((np.sum(relative_predator_velocities,axis=0)/
+                self.ecosystem.num_predators))
 
-        ''' # "too-close" predator sensor.
-        too_close_indices =\
-         self.ecosystem.predator_tree.query_ball_point(
-            self.position, self.too_close_radius+self.ecosystem.predator_radius)
-        number_of_too_close = np.size(too_close_indices) '''
                     
         # "too-close" predator sensor.
         too_close_index = self.find_visible_neighbours(
@@ -673,11 +695,13 @@ class Predator(Boid):
     
         # Total force.           
         force = np.dot(self.weights,sensors)/self.number_of_weights
+        force_norm = quick_norm(force)
+        if (force_norm > self.ecosystem.predator_max_force):
+            force *= self.ecosystem.predator_max_force/force_norm
         return force
         
     @property
     def fitness(self):
-#        return self.kill_count
         if (self.age == 0):
             return 0
         else:
@@ -689,7 +713,14 @@ class Predator(Boid):
         Return a boolean value describing whether boid is dead.
         Predators can only dies of old age (for now).
         """
-        if (self.age > self.life_span):
+        # Check if outise perimeter
+        radial_position = quick_norm(self.position)
+        how_far_out = (radial_position + self.ecosystem.predator_radius - 
+            self.ecosystem.world_radius)
+        # If too far out, kill boid
+        if (how_far_out > 0.5):
+            return True
+        elif (self.age > self.life_span):
             return True
         else:
             return False
