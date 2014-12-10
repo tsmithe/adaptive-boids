@@ -258,7 +258,7 @@ class Boid:
                 # Relative position unit vector.
                 relative_unit_vector = relative_positions/distance_between_boids[:,np.newaxis]
                 # Calculate collision acceleration (Basically Pauli exclusion).
-                collision_acc = np.sum(-*(relative_unit_vector)*np.exp(overlap[:,np.newaxis]),axis=0)/number_of_collisions
+                collision_acc = np.sum(-(relative_unit_vector)*np.exp(overlap[:,np.newaxis]),axis=0)/number_of_collisions
                 
             collision_acc = collision_acc.flatten()
             new_velocity += collision_acc * self.ecosystem.dt
