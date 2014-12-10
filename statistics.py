@@ -54,10 +54,11 @@ class StatisticsHelper:
 
         if self.centre_of_mass_csv:
             self.centre_of_mass_csv.writerow(self.centre_of_mass.tolist())
-            
+        
         if self.scalars_csv:
             self.scalars_csv.writerow([self.average_nearest_neighbour,
-                                       self.average_distance_centre_of_mass])
+                                       self.average_distance_centre_of_mass,
+                                       self.angular_deviation])
 
     @property
     def positions(self):
@@ -91,3 +92,13 @@ class StatisticsHelper:
             distance_sum += np.linalg.norm(b.position-centre_of_mass)
             
         return distance_sum/len(self.boids)
+    
+    @property
+    def angular_deviation(self):
+        # Implements the measure described here: http://en.wikipedia.org/wiki/Mean_of_circular_quantities#Mean_of_angles
+        # 0 means the velocity vectors point in randomly distributed directions
+        # 1 means the velocity vectors are coordinated in the same direction
+        mean = np.array([0,0])
+        for b in self.boids:
+            mean = np.add(mean,b.velocity/np.linalg.norm(b.velocity))
+        return np.linalg.norm(mean/len(self.boids))

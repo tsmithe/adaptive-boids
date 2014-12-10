@@ -111,9 +111,9 @@ def main():
                           WEIGHTS_DISTRIBUTION_STD)
 
     prey_statistics = StatisticsHelper('prey_', False,
-                                       True, True, True)
+                                       True, True, True, True)
     predator_statistics = StatisticsHelper('predator_', False,
-                                           True, True, True)
+                                           True, True, True, True)
 
     t = 0
     iteration = 0
