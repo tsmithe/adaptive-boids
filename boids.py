@@ -238,14 +238,14 @@ class Boid:
                 distance_between_boids = quick_norm(relative_positions.flatten())
                 overlap = 2*self_radius - distance_between_boids
                 relative_unit_vector = relative_positions/distance_between_boids
-                collision_acc = -0.01*(relative_unit_vector)*np.exp(0.1*overlap)
+                collision_acc = -relative_unit_vector*np.exp(overlap)
 #                collision_center_of_mass = (self.position + 0.5*relative_positions.flatten())
             else:
                 # Collided with multiple predators.
                 distance_between_boids = np.linalg.norm(relative_positions, axis=1)
                 overlap = 2*self_radius - distance_between_boids
                 relative_unit_vector = relative_positions/distance_between_boids[:,np.newaxis]
-                collision_acc = np.sum(-0.01*(relative_unit_vector)*np.exp(0.1*overlap[:,np.newaxis]),axis=0)/number_of_collisions
+                collision_acc = np.sum(-relative_unit_vector*np.exp(overlap[:,np.newaxis]),axis=0)/number_of_collisions
                 
             collision_acc = collision_acc.flatten()
             new_velocity += collision_acc * self.ecosystem.dt
