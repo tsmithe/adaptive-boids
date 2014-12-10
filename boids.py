@@ -144,7 +144,7 @@ class Ecosystem:
         fitness_values = [b.fitness for b in self.predators]
         max_fitness_predator_index = np.argmax(fitness_values)
         if (fitness_values[max_fitness_predator_index] > self.best_predator_fitness
-        or self.best_fitness_weights is None):
+        or self.best_predator_weights is None):
             self.best_predator_fitness = fitness_values[max_fitness_predator_index]
             self.best_predator_weights = self.predators[max_fitness_predator_index].weights
 
