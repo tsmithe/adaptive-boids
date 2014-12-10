@@ -239,7 +239,7 @@ class Boid:
                 # Calculate distance to boids in collision.
                 distance_between_boids = quick_norm(relative_positions.flatten())
                 # Calculate overlap.
-                overlap = self_radius - distance_between_boids/2
+                overlap = 2*self_radius - distance_between_boids
                 # Increase collision_overlap_sum.
                 self.collision_overlap_sum += overlap/2
                 # Relative position unit vector.
@@ -252,7 +252,7 @@ class Boid:
                 # Calculate distance to boids in collision.
                 distance_between_boids = np.linalg.norm(relative_positions, axis=1)
                 # Calculate boid overlap.
-                overlap = self_radius - distance_between_boids/2
+                overlap = 2*self_radius - distance_between_boids
                 # Increase the collision_overlap_sum with all the overlaps
                 self.collision_overlap_sum += np.sum(overlap)/2
                 # Relative position unit vector.
