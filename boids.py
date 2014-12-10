@@ -66,6 +66,9 @@ class Ecosystem:
         
         self.prey = []
         self.predators = []
+        
+        self.best_predator_fitness = 0
+        self.best_predator_weights = None
 
         for i in range(self.num_prey):
             self.prey.append(Prey(self))
@@ -140,16 +143,18 @@ class Ecosystem:
         # Predator with highest kill_count/age is the parent of all new predators.
         fitness_values = [b.fitness for b in self.predators]
         max_fitness_predator_index = np.argmax(fitness_values)
-        best_weights = self.predators[max_fitness_predator_index].weights
+        if (fitness_values[max_fitness_predator_index] > self.best_predator_fitness
+        or self.best_fitness_weights is None):
+            self.best_predator_fitness = fitness_values[max_fitness_predator_index]
+            self.best_predator_weights = self.predators[max_fitness_predator_index].weights
+
         for p in self.predators:
             if (p.killed == True):
                 self.predators.remove(p)
                 child = Predator(self)
-                child.weights = best_weights
+                child.weights = self.best_predator_weights
                 child.weights = child.mutate()
                 self.predators.append(child)
-                                
-
         
 class Boid:
 
