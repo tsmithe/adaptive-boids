@@ -157,6 +157,7 @@ class Boid:
         self.ecosystem = ecosystem
         self.stamina = 1.0 # in range [0, 1] ?
         self.eating = False
+        self.collision_overlap_sum = 0.0
         self.age = 1
 
 
@@ -232,20 +233,32 @@ class Boid:
         if number_of_collisions > 0:
             # Reduce maximum velocity
             self.max_speed = self.min_speed
-
+            
             if (number_of_collisions == 1):
                 # Collided with one other predator.
+                # Calculate distance to boids in collision.
                 distance_between_boids = quick_norm(relative_positions.flatten())
+                # Calculate overlap.
                 overlap = 2*self_radius - distance_between_boids
+                # Increase collision_overlap_sum.
+                self.collision_overlap_sum += overlap
+                # Relative position unit vector.
                 relative_unit_vector = relative_positions/distance_between_boids
-                collision_acc = -relative_unit_vector*np.exp(overlap)
-#                collision_center_of_mass = (self.position + 0.5*relative_positions.flatten())
+
+                # Calculate collision acceleration (Basically Pauli exclusion).
+                collision_acc = -(relative_unit_vector)*np.exp(overlap)
             else:
                 # Collided with multiple predators.
+                # Calculate distance to boids in collision.
                 distance_between_boids = np.linalg.norm(relative_positions, axis=1)
+                # Calculate boid overlap.
                 overlap = 2*self_radius - distance_between_boids
+                # Increase the collision_overlap_sum with all the overlaps
+                self.collision_overlap_sum += np.sum(overlap)
+                # Relative position unit vector.
                 relative_unit_vector = relative_positions/distance_between_boids[:,np.newaxis]
-                collision_acc = np.sum(-relative_unit_vector*np.exp(overlap[:,np.newaxis]),axis=0)/number_of_collisions
+                # Calculate collision acceleration (Basically Pauli exclusion).
+                collision_acc = np.sum(-*(relative_unit_vector)*np.exp(overlap[:,np.newaxis]),axis=0)/number_of_collisions
                 
             collision_acc = collision_acc.flatten()
             new_velocity += collision_acc * self.ecosystem.dt
@@ -505,6 +518,9 @@ class Prey(Boid):
         elif (how_far_out > 0.5):
             # Kill if too far outside. (0.5 is apparently far enough according to Sayers)
             return True
+        elif (self.collision_overlap_sum >= self.ecosystem.prey_radius):
+            # Kill if the prey has collided too much/many times
+            return True
         elif (self.age > self.life_span):
             # Kill if too old.
             return True
@@ -522,7 +538,7 @@ class Predator(Boid):
     def __init__(self, ecosystem):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too
 
-        self.number_of_weights = 6
+        self.number_of_weights = 7
         self.pick_weights_sd = self.ecosystem.weights_distribution_std
         self.max_speed = self.ecosystem.predator_max_speed
         self.original_max_speed = self.ecosystem.predator_max_speed
@@ -621,8 +637,11 @@ class Predator(Boid):
         """
         (target_prey_distance, target_prey_index) = (
             self.ecosystem.prey_tree.query(self.position))
-        sensors[0,:] = self.ecosystem.prey_tree.data[target_prey_index,:] - self.position
-        sensors[1,:] = self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
+        relative_position = self.ecosystem.prey_tree.data[target_prey_index,:] - self.position
+        relative_velocity = self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
+        sensors[0,:] = relative_position
+        sensors[1,:] = relative_velocity
+        sensors[2,:] = relative_position + relative_velocity * self.ecosystem.dt
 
         # Fellow predator sensors.
         if ((self.perception_angle < np.pi) | (self.perception_length < 2*self.ecosystem.world_radius)):            
@@ -640,12 +659,12 @@ class Predator(Boid):
                 relative_predator_velocities = np.array(
                     self.ecosystem.predator_velocities[visible_predator_index,:]-self.velocity)
                 if (number_of_visible_predators == 1):
-                    sensors[2,:] = relative_predator_positions
-                    sensors[3,:] = relative_predator_velocities
+                    sensors[3,:] = relative_predator_positions
+                    sensors[4,:] = relative_predator_velocities
                 else:
-                    sensors[2,:] = (np.sum(relative_predator_positions,axis=0)/
+                    sensors[3,:] = (np.sum(relative_predator_positions,axis=0)/
                         number_of_visible_predators)
-                    sensors[3,:] = (np.sum(relative_predator_velocities,axis=0)/
+                    sensors[4,:] = (np.sum(relative_predator_velocities,axis=0)/
                         number_of_visible_predators)
         else:
             fellow_predator_indices = (
@@ -657,9 +676,9 @@ class Predator(Boid):
             relative_predator_velocities = (
                 np.array(self.ecosystem.predator_velocities[fellow_predator_indices,:] - 
                 self.velocity))
-            sensors[2,:] = ((np.sum(relative_predator_positions,axis=0)/
+            sensors[3,:] = ((np.sum(relative_predator_positions,axis=0)/
                 self.ecosystem.num_predators))
-            sensors[3,:] = ((np.sum(relative_predator_velocities,axis=0)/
+            sensors[4,:] = ((np.sum(relative_predator_velocities,axis=0)/
                 self.ecosystem.num_predators))
 
                     
@@ -680,7 +699,7 @@ class Predator(Boid):
                 too_close_dist = np.linalg.norm(relative_too_close_positions, axis=1)
                 too_close_direction = (
                     relative_too_close_positions/too_close_dist[:,np.newaxis])
-            sensors[4,:] = (np.dot(((self.too_close_radius/too_close_dist)-1),
+            sensors[5,:] = (np.dot(((self.too_close_radius/too_close_dist)-1),
                 too_close_direction)/number_of_too_close)
                 
         # Perimeter sensor
@@ -690,7 +709,7 @@ class Predator(Boid):
         sensor_overlap = radial_position + self.ecosystem.predator_radius - self.ecosystem.world_radius
         if (sensor_overlap > 0):
             # Perimeter visible.
-            sensors[5,:] = (((self.perception_length/sensor_overlap) - 1)*
+            sensors[6,:] = (((self.perception_length/sensor_overlap) - 1)*
                 self.position/radial_position)
     
         # Total force.           
@@ -721,6 +740,9 @@ class Predator(Boid):
         if (how_far_out > 0.5):
             return True
         elif (self.age > self.life_span):
+            return True
+        elif (self.collision_overlap_sum >= self.ecosystem.predator_radius):
+            # Kill if the predator has collided too much/many times
             return True
         else:
             return False
