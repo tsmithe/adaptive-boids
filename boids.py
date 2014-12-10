@@ -241,7 +241,7 @@ class Boid:
                 # Calculate overlap.
                 overlap = 2*self_radius - distance_between_boids
                 # Increase collision_overlap_sum.
-                self.collision_overlap_sum += overlap
+                self.collision_overlap_sum += overlap/2
                 # Relative position unit vector.
                 relative_unit_vector = relative_positions/distance_between_boids
 
@@ -254,7 +254,7 @@ class Boid:
                 # Calculate boid overlap.
                 overlap = 2*self_radius - distance_between_boids
                 # Increase the collision_overlap_sum with all the overlaps
-                self.collision_overlap_sum += np.sum(overlap)
+                self.collision_overlap_sum += np.sum(overlap)/2
                 # Relative position unit vector.
                 relative_unit_vector = relative_positions/distance_between_boids[:,np.newaxis]
                 # Calculate collision acceleration (Basically Pauli exclusion).

@@ -13,12 +13,12 @@ from statistics import StatisticsHelper
 # Set these parameters -- TODO: argparse!
 SEED = 2
 
-DT = 0.1
+DT = 0.2
 
-RUN_TIME = 1000 # in units of time
-DUMP_STATS_INTERVAL = 30 # in units of *iterations* (one iteration = 1 DT time)
+RUN_TIME = 200000 # in units of time
+DUMP_STATS_INTERVAL = 25 # in units of *iterations* (one iteration = 1 DT time)
 
-WORLD_RADIUS = 140
+WORLD_RADIUS = 400
 NUM_PREY = 30
 NUM_PREDATORS = 3
 

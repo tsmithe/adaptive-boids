@@ -18,10 +18,10 @@ from fast_boids import quick_norm
 PLOT_MINIMUM = -1.01*WORLD_RADIUS
 PLOT_MAXIMUM = 1.01*WORLD_RADIUS
 
-FRAME_INTERVAL = 50 # NB: Matplotlib doesn't seem to go much faster...
+FRAME_INTERVAL = 100 # NB: Matplotlib doesn't seem to go much faster...
 EVERY_NTH_FRAME = 1 # Only show every Nth frame (frames are enumerable)
 START_AT_T = 0 # Start at t = ? -- counting from 0
-STOP_AT_T = 1000
+STOP_AT_T = np.inf
 
 def animate(i, fig, ax, text,
             prey_graph, prey_quivers,
