@@ -115,23 +115,23 @@ class StatisticsHelper:
         # 0 means the velocity vectors point in randomly distributed directions
         # 1 means the velocity vectors are coordinated in the same direction
         
-        mean = np.array([0,0])
+        #mean = np.array([0,0])
         boid_velocities = np.array([b.velocity for b in self.boids])
-        angular_cosine = np.zeros(np.size(boid_velocities)/2)
+        angular_cosine = 0.0
 
-        for i in np.arange(np.size(angular_cosine)):
+        for i in np.arange(len(self.self_indices)):
             self_velocity = boid_velocities[self.self_indices[i],:]
             self_direction = self_velocity/np.linalg.norm(self_velocity)
             neighbour_velocity = boid_velocities[self.neighbour_indices[i],:]
             neighbour_direction = neighbour_velocity/np.linalg.norm(neighbour_velocity)
-            angular_cosine[i] = np.dot(self_direction, neighbour_direction)
+            angular_cosine += np.dot(self_direction, neighbour_direction)
         """
         for b in self.boids:
             self_velocity = boid_velocities[
             mean = np.add(mean,b.velocity/np.linalg.norm(b.velocity))
         return np.linalg.norm(mean/len(self.boids))
         """
-        return np.mean(angular_cosine)
+        return angular_cosine/len(self.self_indices)
 
     def find_nearest_neighbour(self):
         distances, indices = self.tree.query([b.position for b in self.boids], k=2)
