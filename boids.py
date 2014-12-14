@@ -201,8 +201,10 @@ class Boid:
         new_velocity_norm = quick_norm(new_velocity)
         current_velocity_norm = quick_norm(self.velocity)
         
-        # Find angle between wanted velocity and current velocity        
-        angle = np.arccos(np.dot(new_velocity,self.velocity)/(new_velocity_norm*current_velocity_norm))
+        # Find angle between wanted velocity and current velocity
+        cosine = np.dot(new_velocity,self.velocity)/(new_velocity_norm*current_velocity_norm)
+        cosine = np.clip(cosine, 0., 1.)
+        angle = np.arccos(cosine)
         delta_angle = angle - self.max_steering_angle
         # Test if boid tries to turn too much.
         if(delta_angle > 0):
