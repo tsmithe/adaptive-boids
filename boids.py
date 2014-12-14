@@ -485,10 +485,10 @@ class Prey(Boid):
         # Prey distance to origin.
         radial_position = quick_norm(self.position)
         # Perimeter visible to prey?
-        sensor_overlap = radial_position + self.ecosystem.prey_radius - self.ecosystem.world_radius
-        if (sensor_overlap > 0):
+        distance_to_boundary = self.ecosystem.world_radius - radial_position
+        if (distance_to_boundary < self.perception_length):
             # Perimeter visible.
-            sensors[5,:] = (((self.perception_length/sensor_overlap) - 1)*
+            sensors[5,:] = (((self.perception_length/distance_to_boundary) - 1)*
                 self.position/radial_position)
             
 
@@ -711,10 +711,10 @@ class Predator(Boid):
         # Predator distance to origin.
         radial_position = quick_norm(self.position)
         # Perimeter visible to predator?
-        sensor_overlap = radial_position + self.ecosystem.predator_radius - self.ecosystem.world_radius
-        if (sensor_overlap > 0):
+        distance_to_boundary = self.ecosystem.world_radius-radial_position
+        if (distance_to_boundary < self.perception_length):
             # Perimeter visible.
-            sensors[6,:] = (((self.perception_length/sensor_overlap) - 1)*
+            sensors[6,:] = (((self.perception_length/distance_to_boundary) - 1)*
                 self.position/radial_position)
     
         # Total force.           
