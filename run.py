@@ -80,6 +80,7 @@ if __name__ == '__main__':
         path = '.'
     else:
         path = sys.argv[1]
+
     config = configparser.ConfigParser()
     if os.path.isdir(path):
         config.read(os.path.join(path, 'config.ini'))
@@ -87,4 +88,18 @@ if __name__ == '__main__':
     else:
         config.read(path)
         config['DEFAULT']['data_dir'] = os.path.abspath(os.path.dirname(path))
-    main(config)
+
+    lock = os.path.join(config['DEFAULT']['data_dir'], 'lock')
+    if os.path.exists(lock):
+        print("You need to stop the running simulation, or remove the lock file at\n%s" %
+              os.path.join(config['DEFAULT']['data_dir'], 'lock'))
+        sys.exit(1)
+    with open(lock, 'a'):
+        os.utime(lock)
+
+    try:
+        main(config)
+    except KeyboardInterrupt:
+        pass
+
+    os.remove(lock)
