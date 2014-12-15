@@ -4,7 +4,7 @@
 Run the main loop of the simulation
 """
 
-import configparser, sys
+import configparser, os, sys
 import numpy as np
 
 from boids import *
@@ -77,7 +77,14 @@ def main(config):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("You need to provide a config file path!")
+        path = '.'
+    else:
+        path = sys.argv[1]
     config = configparser.ConfigParser()
-    config.read(sys.argv[1])
+    if os.path.isdir(path):
+        config.read(os.path.join(path, 'config.ini'))
+        config['DEFAULT']['data_dir'] = os.path.abspath(path)
+    else:
+        config.read(path)
+        config['DEFAULT']['data_dir'] = os.path.abspath(os.path.dirname(path))
     main(config)

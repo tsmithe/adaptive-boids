@@ -11,11 +11,17 @@ import configparser, csv, numpy as np, os, sys
 from fast_boids import quick_norm
 
 if len(sys.argv) < 2:
-    print("Need to pass a config file as the first argument!")
-    sys.exit(1)
+    path = '.'
+else:
+    path = sys.argv[1]
 
 config = configparser.ConfigParser()
-config.read(sys.argv[1])
+if os.path.isdir(path):
+    config.read(os.path.join(path, 'config.ini'))
+    config['DEFAULT']['data_dir'] = os.path.abspath(path)
+else:
+    config.read(path)
+    config['DEFAULT']['data_dir'] = os.path.abspath(os.path.dirname(path))
 
 WORLD_RADIUS = eval(config['DEFAULT']['world_radius'])
 DUMP_STATS_INTERVAL = eval(config['DEFAULT']['dump_stats_interval'])
