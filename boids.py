@@ -140,7 +140,7 @@ class Ecosystem:
 
     def kill_predators(self):
         # kill predators.
-        # Predator with highest kill_count/age is the parent of all new predators.
+        # Predator with highest kill_count is the parent of all new predators.
         fitness_values = [b.fitness for b in self.predators]
         max_fitness_predator_index = np.argmax(fitness_values)
         if (fitness_values[max_fitness_predator_index] > self.best_predator_fitness
@@ -559,11 +559,10 @@ class Predator(Boid):
         self.collision_rebound_rate = self.ecosystem.predator_collision_speed_rebound
         
         self.weights = np.random.normal(0.0,self.pick_weights_sd,self.number_of_weights)
-#        self.weights = self.ecosystem.predator_network_weights
         self.position = self.initialize_position()        
         self.velocity = self.initialize_velocity()
         
-        self.kill_count = 1
+        self.kill_count = 0
 
     def update_velocity(self, dt):
         """
@@ -728,10 +727,7 @@ class Predator(Boid):
         
     @property
     def fitness(self):
-        if (self.age == 0):
-            return 0
-        else:
-            return self.kill_count/self.age
+        return self.kill_count
 
     @property
     def killed(self):
