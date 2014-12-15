@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 
-import csv
+import configparser, csv, os, sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-csv_reader = csv.reader(open('prey_scalars.csv'))
+if len(sys.argv) < 2:
+    print("Need to pass a config file as the first argument!")
+    sys.exit(1)
+
+config = configparser.ConfigParser()
+config.read(sys.argv[1])
+
+data_dir = config['DEFAULT']['data_dir']
+csv_reader = csv.reader(open(os.path.join(data_dir, 'prey_scalars.csv')))
 
 def collect_data(csv_reader):
     frame_data = []

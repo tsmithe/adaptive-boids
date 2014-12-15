@@ -1,9 +1,9 @@
-import csv
+import csv, os
 import numpy as np
 
 class StatisticsHelper:
     
-    def __init__(self, file_path, append_to_file = False,
+    def __init__(self, file_path, config, append_to_file = False,
                  position = False,
                  velocities = False,
                  centre_of_mass = False,
@@ -13,31 +13,33 @@ class StatisticsHelper:
         The named parameters correspond to statistical numbers that can be
         exported. They will only be exported if the parameter is set to true.
         '''
+
+        os.makedirs(config['DEFAULT']['data_dir'], exist_ok=True)
+        
         if append_to_file: self.file_mode = 'a'
         else: self.file_mode = 'w'
         
         if position:
-            self.positions_csv = csv.writer(open(file_path+"positions.csv",
-                                                 self.file_mode))
+            fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'positions.csv')
+            self.positions_csv = csv.writer(open(fname, self.file_mode))
         else:
             self.positions_csv = None
             
         if velocities:
-            self.velocities_csv = csv.writer(open(file_path+"velocities.csv",
-                                                  self.file_mode))
+            fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'velocities.csv')
+            self.velocities_csv = csv.writer(open(fname, self.file_mode))
         else:
             self.velocities_csv = None
 
         if centre_of_mass:
-            self.centre_of_mass_csv = csv.writer(open(
-                file_path+"centre_of_mass.csv",
-                self.file_mode))
+            fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'centre_of_mass.csv')
+            self.centre_of_mass_csv = csv.writer(open(fname, self.file_mode))
         else:
             self.centre_of_mass_csv = None
             
         if scalars:
-            self.scalars_csv = csv.writer(open(file_path+"scalars.csv",
-                                               self.file_mode))
+            fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'scalars.csv')
+            self.scalars_csv = csv.writer(open(fname, self.file_mode))
         else:
             self.scalars_csv = None
 

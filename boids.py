@@ -12,55 +12,40 @@ from fast_boids import quick_norm, quick_dot
 
 
 class Ecosystem:
-    def __init__(self, world_radius, num_prey, num_predators,
-                 prey_radius, predator_radius,
-                 prey_max_speed, predator_max_speed,
-                 prey_min_speed, predator_min_speed,
-                 prey_max_steering_angle, predator_max_steering_angle,
-                 prey_max_force, predator_max_force,
-                 prey_perception_length, predator_perception_length,
-                 prey_perception_angle, predator_perception_angle,
-                 prey_too_close_radius, predator_too_close_radius,
-                 prey_network_weights, predator_network_weights,
-                 prey_lifespan, predator_lifespan, 
-                 prey_weight, predator_weight,
-                 prey_collision_recovery_rate, predator_collision_recovery_rate,
-                 feeding_area_radius, feeding_area_position, dt,
-                 weights_distribution_std):
-        self.dt = dt
-        self.world_radius = world_radius
-        self.num_prey = num_prey
-        self.num_predators = num_predators
-        self.feeding_area_position = np.asarray(feeding_area_position)
-        self.feeding_area_radius = feeding_area_radius
-        self.weights_distribution_std = weights_distribution_std
+    def __init__(self, config):
+        self.dt = eval(config['DEFAULT']['dt'])
+        self.world_radius = eval(config['DEFAULT']['world_radius'])
+        self.num_prey = eval(config['DEFAULT']['num_prey'])
+        self.num_predators = eval(config['DEFAULT']['num_predators'])
+        self.feeding_area_position = np.asarray(eval(config['DEFAULT']['feeding_area_position']))
+        self.feeding_area_radius = eval(config['DEFAULT']['feeding_area_radius'])
+        self.weights_distribution_std = eval(config['DEFAULT']['weights_distribution_std'])
 
-        self.prey_radius = prey_radius
-        self.prey_max_speed = prey_max_speed
-        self.prey_min_speed = prey_min_speed
+        self.prey_radius = eval(config['Prey']['boid_radius'])
+        self.prey_max_speed = eval(config['Prey']['boid_max_speed'])
+        self.prey_min_speed = eval(config['Prey']['boid_min_speed'])
         self.prey_collision_speed_rebound = ((self.prey_max_speed-self.prey_min_speed)*
-                                             prey_collision_recovery_rate)
-        self.prey_max_steering_angle = prey_max_steering_angle
-        self.prey_max_force = prey_max_force
-        self.prey_perception_length = prey_perception_length
-        self.prey_perception_angle = prey_perception_angle
-        self.prey_too_close_radius = prey_too_close_radius
-        self.prey_weight = prey_weight
-        self.prey_lifespan = prey_lifespan
-        self.prey_network_weights = prey_network_weights
+                                             eval(config['Prey']['boid_collision_recovery_rate']))
+        self.prey_max_steering_angle = eval(config['Prey']['boid_max_steering_angle'])
+        self.prey_max_force = eval(config['Prey']['boid_max_force'])
+        self.prey_perception_length = eval(config['Prey']['boid_perception_length'])
+        self.prey_perception_angle = eval(config['Prey']['boid_perception_angle'])
+        self.prey_too_close_radius = eval(config['Prey']['boid_too_close_radius'])
+        self.prey_weight = eval(config['Prey']['boid_weight'])
+        self.prey_lifespan = eval(config['Prey']['boid_lifespan'])
 
-        self.predator_radius = predator_radius
-        self.predator_max_speed = predator_max_speed
-        self.predator_min_speed = predator_min_speed
-        self.predator_collision_speed_rebound = ((self.predator_max_speed-self.predator_min_speed)*                                                     predator_collision_recovery_rate)
-        self.predator_max_steering_angle = predator_max_steering_angle
-        self.predator_max_force = predator_max_force
-        self.predator_perception_length = predator_perception_length
-        self.predator_perception_angle = predator_perception_angle
-        self.predator_too_close_radius = predator_too_close_radius
-        self.predator_weight = predator_weight
-        self.predator_lifespan = predator_lifespan
-        self.predator_network_weights = predator_network_weights
+        self.predator_radius = eval(config['Predator']['boid_radius'])
+        self.predator_max_speed = eval(config['Predator']['boid_max_speed'])
+        self.predator_min_speed = eval(config['Predator']['boid_min_speed'])
+        self.predator_collision_speed_rebound = ((self.predator_max_speed-self.predator_min_speed)*
+                                             eval(config['Predator']['boid_collision_recovery_rate']))
+        self.predator_max_steering_angle = eval(config['Predator']['boid_max_steering_angle'])
+        self.predator_max_force = eval(config['Predator']['boid_max_force'])
+        self.predator_perception_length = eval(config['Predator']['boid_perception_length'])
+        self.predator_perception_angle = eval(config['Predator']['boid_perception_angle'])
+        self.predator_too_close_radius = eval(config['Predator']['boid_too_close_radius'])
+        self.predator_weight = eval(config['Predator']['boid_weight'])
+        self.predator_lifespan = eval(config['Predator']['boid_lifespan'])
         
         self.prey = []
         self.predators = []
@@ -155,6 +140,24 @@ class Ecosystem:
                 self.predators.append(child)
         
 class Boid:
+    '''
+    Network weights. Predator:
+    1. Target prey position
+    2. Target prey velocity
+    3. Target pursuit 
+    4. Fellow predator position
+    5. Fellow predator velocity
+    6. Fellow predator too close
+    7. Perimeter sensor
+
+    Prey:
+    1. Fellow prey position
+    2. Fellow prey velocity
+    3. Fellow prey "too close"
+    4. Predator
+    5. Feeding area sensor
+    6. Perimeter sensor
+    '''
 
     def __init__(self, ecosystem):
         self.ecosystem = ecosystem
@@ -364,7 +367,6 @@ class Prey(Boid):
         self.collision_rebound_rate = self.ecosystem.prey_collision_speed_rebound
 
         self.weights = np.random.normal(0.0,self.pick_weights_sd,self.number_of_weights)
-#        self.weights = self.ecosystem.prey_network_weights # neural net weights        
         self.position = self.initialize_position()        
         self.velocity = self.initialize_velocity()
 

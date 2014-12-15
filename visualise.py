@@ -4,24 +4,35 @@
 Script to produce visualisation of boid movement from dumped position data
 """
 
-# TODO:
-# - mark boundary; feeding area
-# - perhaps velocity arrows (optionally)
-
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import csv, numpy as np
+import configparser, csv, numpy as np, os, sys
 
-from run import DUMP_STATS_INTERVAL, DT, WORLD_RADIUS, PREY_RADIUS, PREDATOR_RADIUS
 from fast_boids import quick_norm
+
+if len(sys.argv) < 2:
+    print("Need to pass a config file as the first argument!")
+    sys.exit(1)
+
+config = configparser.ConfigParser()
+config.read(sys.argv[1])
+
+WORLD_RADIUS = eval(config['DEFAULT']['world_radius'])
+DUMP_STATS_INTERVAL = eval(config['DEFAULT']['dump_stats_interval'])
+DT = eval(config['DEFAULT']['dt'])
+
+PREY_RADIUS = eval(config['Prey']['boid_radius'])
+PREDATOR_RADIUS = eval(config['Predator']['boid_radius'])
+
+FRAME_INTERVAL = eval(config['Visualisation']['frame_interval'])
+EVERY_NTH_FRAME = eval(config['Visualisation']['every_nth_frame'])
+START_AT_T = eval(config['Visualisation']['start_at_t'])
+STOP_AT_T = eval(config['Visualisation']['stop_at_t'])
+
+DATA_DIR = config['DEFAULT']['data_dir']
 
 PLOT_MINIMUM = -1.01*WORLD_RADIUS
 PLOT_MAXIMUM = 1.01*WORLD_RADIUS
-
-FRAME_INTERVAL = 100 # NB: Matplotlib doesn't seem to go much faster...
-EVERY_NTH_FRAME = 1 # Only show every Nth frame (frames are enumerable)
-START_AT_T = 0 # Start at t = ? -- counting from 0
-STOP_AT_T = np.inf
 
 def animate(i, fig, ax, text,
             prey_graph, prey_quivers,
@@ -64,10 +75,10 @@ def collect_data(csv_reader):
         i += 1
     return frame_data
 
-prey_pos_reader = csv.reader(open('prey_positions.csv'))
-prey_vel_reader = csv.reader(open('prey_velocities.csv'))
-predator_pos_reader = csv.reader(open('predator_positions.csv'))
-predator_vel_reader = csv.reader(open('predator_velocities.csv'))
+prey_pos_reader = csv.reader(open(os.path.join(DATA_DIR, 'prey_positions.csv')))
+prey_vel_reader = csv.reader(open(os.path.join(DATA_DIR, 'prey_velocities.csv')))
+predator_pos_reader = csv.reader(open(os.path.join(DATA_DIR, 'predator_positions.csv')))
+predator_vel_reader = csv.reader(open(os.path.join(DATA_DIR, 'predator_velocities.csv')))
 
 prey_pos_data = collect_data(prey_pos_reader)
 prey_vel_data = collect_data(prey_vel_reader)
@@ -80,11 +91,11 @@ boundary = plt.Circle((0, 0), WORLD_RADIUS, facecolor='none',
 ax.add_artist(boundary)
 text = ax.text(PLOT_MINIMUM+5, PLOT_MAXIMUM-20, "", withdash=True, fontsize=12)
 prey_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
-                        np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
+                        2*np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
                         edgecolor='black', linewidth=1)
 prey_quivers = ax.quiver([], [], width=0.5, units='dots', scale=0.08)
 predator_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
-                            np.pi*PREDATOR_RADIUS**2, facecolor='red', alpha=0.8,
+                            2*np.pi*PREDATOR_RADIUS**2, facecolor='red', alpha=0.8,
                             edgecolor='black', linewidth=1)
 predator_quivers = ax.quiver([], [], width=0.5, units='dots', scale=0.08)
 ax.set_xlim(PLOT_MINIMUM, PLOT_MAXIMUM)
