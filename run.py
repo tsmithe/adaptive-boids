@@ -15,40 +15,39 @@ SEED = 2
 
 DT = 0.2
 
-RUN_TIME = 200000 # in units of time
-DUMP_STATS_INTERVAL = 25 # in units of *iterations* (one iteration = 1 DT time)
+RUN_TIME = np.inf # in units of time
+DUMP_STATS_INTERVAL = 10 # in units of *iterations* (one iteration = 1 DT time)
 
-WORLD_RADIUS = 400
-NUM_PREY = 30
-NUM_PREDATORS = 3
+WORLD_RADIUS = 500
+NUM_PREY = 50
+NUM_PREDATORS = 2
+
 
 PREY_RADIUS = 2.0
-PREY_PERCEPTION_LENGTH = 20.0
-PREY_PERCEPTION_ANGLE = np.pi*3.0/4.0
+PREY_PERCEPTION_LENGTH = 150.0
+PREY_PERCEPTION_ANGLE = np.pi*3.0/4.0 # Can see 135° in both directions.
 PREY_TOO_CLOSE_RADIUS = 5.0
-PREY_MAX_STEERING_ANGLE = np.pi/4.0
+PREY_MAX_STEERING_ANGLE = np.pi/4.0 # Can turn maximum 45° per time step.
 PREY_MAX_VELOCITY = 5.0
-PREY_MIN_VELOCITY = 0.1
+PREY_MIN_VELOCITY = 0.5
 PREY_MAX_FORCE = 7.0
 PREY_WEIGHT = 1.0
 PREY_LIFESPAN = 8000
+PREY_COLLISION_RECOVERY_RATE = 0.05
 
 PREDATOR_RADIUS = 2.0
-PREDATOR_PERCEPTION_LENGTH = 20.0
-PREDATOR_PERCEPTION_ANGLE = np.pi
+PREDATOR_PERCEPTION_LENGTH = 150.0
+PREDATOR_PERCEPTION_ANGLE = np.pi # Can see 180° in both directions, i.e. no limitation.
 PREDATOR_TOO_CLOSE_RADIUS = 5.0
-PREDATOR_MAX_STEERING_ANGLE = np.pi
+PREDATOR_MAX_STEERING_ANGLE = np.pi # Can turn 180° in both direction, i.e. no limitation.
 PREDATOR_MAX_VELOCITY = 8.0
-PREDATOR_MIN_VELOCITY = 0.1
+PREDATOR_MIN_VELOCITY = 0.5
 PREDATOR_MAX_FORCE = 10.0
 PREDATOR_WEIGHT = 1.0
 PREDATOR_LIFESPAN = 2000
+PREDATOR_COLLISION_RECOVERY_RATE = 0.01
 
-COLLISION_RECOVERY_RATE = 0.01
-WEIGHTS_DISTRIBUTION_STD = 0.5
-
-CREEP_RANGE = 0.01
-MUTATION_PROBABILITY = 1.0
+WEIGHTS_DISTRIBUTION_STD = 0.2
 
 FEEDING_AREA_RADIUS = 5.0
 FEEDING_AREA_POSITION = (50, 50)
@@ -57,9 +56,11 @@ FEEDING_AREA_POSITION = (50, 50)
 Network weights. Predator:
 1. Target prey position
 2. Target prey velocity
-3. Fellow predator position
-4. Fellow predator velocity
-5. Fellow predator too close
+3. Target pursuit 
+4. Fellow predator position
+5. Fellow predator velocity
+6. Fellow predator too close
+7. Perimeter sensor
 
 Prey:
 1. Fellow prey position
@@ -67,13 +68,9 @@ Prey:
 3. Fellow prey "too close"
 4. Predator
 5. Feeding area sensor
+6. Perimeter sensor
 '''
-# PREY_NETWORK_WEIGHTS = 2*np.random.random(5)-1
-# PREDATOR_NETWORK_WEIGHTS = 2*np.random.random(5)-1
 
-
-#PREDATOR_NETWORK_WEIGHTS = np.array([0.5, 0.2, -0.05, - 0.05, -0.2])
-#PREY_NETWORK_WEIGHTS = np.array([0.3, 0.3, -0.3, -0.7, 0.0])
 PREDATOR_NETWORK_WEIGHTS = 0.5*np.array([np.random.random(), np.random.random(),
                                      0.0, 0.0,
                                      -np.random.random()])
@@ -105,9 +102,8 @@ def main():
                           PREY_NETWORK_WEIGHTS, PREDATOR_NETWORK_WEIGHTS,
                           PREY_LIFESPAN, PREDATOR_LIFESPAN,
                           PREY_WEIGHT, PREDATOR_WEIGHT,
+                          PREY_COLLISION_RECOVERY_RATE, PREDATOR_COLLISION_RECOVERY_RATE,
                           FEEDING_AREA_RADIUS, FEEDING_AREA_POSITION, DT,
-                          CREEP_RANGE, MUTATION_PROBABILITY,
-                          COLLISION_RECOVERY_RATE,
                           WEIGHTS_DISTRIBUTION_STD)
 
     prey_statistics = StatisticsHelper('prey_', False,

@@ -24,9 +24,8 @@ class Ecosystem:
                  prey_network_weights, predator_network_weights,
                  prey_lifespan, predator_lifespan, 
                  prey_weight, predator_weight,
+                 prey_collision_recovery_rate, predator_collision_recovery_rate,
                  feeding_area_radius, feeding_area_position, dt,
-                 creep_range, mutation_probability,
-                 collision_recovery_rate,
                  weights_distribution_std):
         self.dt = dt
         self.world_radius = world_radius
@@ -34,14 +33,13 @@ class Ecosystem:
         self.num_predators = num_predators
         self.feeding_area_position = np.asarray(feeding_area_position)
         self.feeding_area_radius = feeding_area_radius
-        self.creep_range = creep_range
-        self.mutation_probability = mutation_probability
         self.weights_distribution_std = weights_distribution_std
 
         self.prey_radius = prey_radius
         self.prey_max_speed = prey_max_speed
         self.prey_min_speed = prey_min_speed
-        self.prey_collision_speed_rebound = (self.prey_max_speed-self.prey_min_speed)*collision_recovery_rate
+        self.prey_collision_speed_rebound = ((self.prey_max_speed-self.prey_min_speed)*
+                                             prey_collision_recovery_rate)
         self.prey_max_steering_angle = prey_max_steering_angle
         self.prey_max_force = prey_max_force
         self.prey_perception_length = prey_perception_length
@@ -54,7 +52,7 @@ class Ecosystem:
         self.predator_radius = predator_radius
         self.predator_max_speed = predator_max_speed
         self.predator_min_speed = predator_min_speed
-        self.predator_collision_speed_rebound = (self.predator_max_speed-self.predator_min_speed)*collision_recovery_rate
+        self.predator_collision_speed_rebound = ((self.predator_max_speed-self.predator_min_speed)*                                                     predator_collision_recovery_rate)
         self.predator_max_steering_angle = predator_max_steering_angle
         self.predator_max_force = predator_max_force
         self.predator_perception_length = predator_perception_length
@@ -188,8 +186,7 @@ class Boid:
         # Check if boid outside perimeter.
         position_norm = quick_norm(self.position)
         if position_norm > self.ecosystem.world_radius:
-#            boundary_acc = -self.position/self.ecosystem.world_radius
-            #This could be used as a "force field":
+            # This could be used as a "force field":
             boundary_acc = - (self.position*np.exp( # A suitable scaling parameter is needed
                 1.0*(position_norm-self.ecosystem.world_radius))/position_norm)
             new_acceleration += boundary_acc
@@ -233,7 +230,8 @@ class Boid:
         # the boid itself is in this array.
         relative_positions = np.array(tree.data[collided_with,:] - self.position)
         # Remove the boid iteslf from array.
-        relative_positions = relative_positions[np.logical_and(relative_positions[:,0]!=0,relative_positions[:,1]!=0)]
+        relative_positions = relative_positions[np.logical_and(
+            relative_positions[:,0]!=0,relative_positions[:,1]!=0)]
             
         # Check if boid collided with other boids
         number_of_collisions = np.size(relative_positions)/2
@@ -641,8 +639,10 @@ class Predator(Boid):
                 sensors[1,:] = self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
         else:
         """
+        # Find closest prey.
         (target_prey_distance, target_prey_index) = (
             self.ecosystem.prey_tree.query(self.position))
+        # Calculate relative position and velocity.
         relative_position = self.ecosystem.prey_tree.data[target_prey_index,:] - self.position
         relative_velocity = self.ecosystem.prey_velocities[target_prey_index,:] - self.velocity
         sensors[0,:] = relative_position
