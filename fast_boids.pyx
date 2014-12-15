@@ -10,6 +10,10 @@ from cython.parallel import parallel, prange
 def quick_norm(np.ndarray[np.float64_t, ndim=1] x):
     return sqrt(pow(x[0], 2) + pow(x[1], 2))
 
+def quick_dot(np.ndarray[np.float64_t, ndim=1] x,
+              np.ndarray[np.float64_t, ndim=1] y):
+    return (x[0] * y[0]) + (x[1] * y[1])
+
 def find_visible_neighbours(np.ndarray[np.float64_t, ndim=2] positions,
                             np.ndarray[np.float64_t, ndim=1] my_position,
                             np.ndarray[np.float64_t, ndim=1] my_velocity,

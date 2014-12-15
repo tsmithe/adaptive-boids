@@ -8,7 +8,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 import fast_boids
-from fast_boids import quick_norm
+from fast_boids import quick_norm, quick_dot
 
 
 class Ecosystem:
@@ -202,7 +202,7 @@ class Boid:
         current_velocity_norm = quick_norm(self.velocity)
         
         # Find angle between wanted velocity and current velocity
-        cosine = np.dot(new_velocity,self.velocity)/(new_velocity_norm*current_velocity_norm)
+        cosine = quick_dot(new_velocity,self.velocity)/(new_velocity_norm*current_velocity_norm)
         cosine = np.clip(cosine, 0., 1.)
         angle = np.arccos(cosine)
         delta_angle = angle - self.max_steering_angle
@@ -213,7 +213,7 @@ class Boid:
         
             # Find vector 90 degrees counter-clockwise from current direction
             perpendicular_to_current_velocity = np.array([-self.velocity[1], self.velocity[0]])
-            if (np.dot(new_velocity,perpendicular_to_current_velocity) > 0):
+            if (quick_dot(new_velocity,perpendicular_to_current_velocity) > 0):
                 # new_velocity is "to the left" of self.velocity.
                 # Rotate new_velocity delta_angle clockwise.
                 delta_angle = -delta_angle
@@ -719,7 +719,7 @@ class Predator(Boid):
             sensors[6,:] = (((self.perception_length/distance_to_boundary) - 1)*
                 self.position/radial_position)
     
-        # Total force.           
+        # Total force.
         force = np.dot(self.weights,sensors)/self.number_of_weights
         force_norm = quick_norm(force)
         if (force_norm > self.ecosystem.predator_max_force):
