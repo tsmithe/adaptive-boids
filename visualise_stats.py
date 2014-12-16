@@ -113,7 +113,7 @@ if MOVING_AVG:
     plt.ylabel("Angular deviation")
 
     plt.figure()
-    normed_dist_avg = nn_dist_moving_avg/np.max(nn_dist_moving_avg)
+    normed_dist_avg = nn_dist_moving_avg/nn_dist_moving_avg[0]
     plt.plot(time_vector, normed_dist_avg, time_vector, ang_dev_moving_avg)
     rho, p = scipy.stats.pearsonr(normed_dist_avg, ang_dev_moving_avg)
     print("Distance-deviation correlation (Spearman): %g with p-value %f" % (rho, p))
