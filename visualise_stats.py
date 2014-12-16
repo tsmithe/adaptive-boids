@@ -4,6 +4,8 @@ import configparser, csv, os, sys
 import matplotlib.pyplot as plt
 import numpy as np
 
+MOVING_AVG = False
+
 if len(sys.argv) < 2:
     path = '.'
 else:
@@ -72,24 +74,10 @@ data = collect_data(csv_reader)
 # Time vector
 time_vector = make_time_vector(data[0], dt, dump_stats_interval)
 
-# Moving average and std of nearest-neighbour distance, keep n odd
-#nn_dist_moving_avg = calculate_moving_average(data[0],501)
-#nn_dist_moving_std = calculate_moving_std(data[0],501)
-
-# Moving average and std of nearest-neighbour angular deviation, keep n odd
-#ang_dev_moving_avg = calculate_moving_average(data[2],501)
-#ang_dev_moving_std = calculate_moving_std(data[2],501)
-
 plt.plot(time_vector, data[0])
 plt.title("Average distance to nearest neighbour")
 plt.xlabel("Time")
 plt.ylabel("Average distance")
-
-#plt.figure()
-#plt.plot(time_vector, nn_dist_moving_avg)
-#plt.title("Average distance to nearest neighbour, moving average of nearest 500 points")
-#plt.xlabel("Time")
-#plt.ylabel("Average distance")
 
 plt.figure()
 plt.plot(time_vector, data[1])
@@ -102,14 +90,29 @@ plt.title("Cosine of angular deviation")
 plt.xlabel("Time")
 plt.ylabel("Angular deviation")
 
-#plt.figure()
-#plt.plot(time_vector, ang_dev_moving_avg)
-#plt.title("Cosine of angular deviation, moving averaging of the nearest 500 points")
-#plt.xlabel("Time")
-#plt.ylabel("Angular deviation")
+if MOVING_AVG:
+    # Moving average and std of nearest-neighbour distance, keep n odd
+    nn_dist_moving_avg = calculate_moving_average(data[0],501)
+    nn_dist_moving_std = calculate_moving_std(data[0],501)
 
-#plt.figure()
-#plt.plot(time_vector, nn_dist_moving_avg/np.max(nn_dist_moving_avg), time_vector, ang_dev_moving_avg)
+    # Moving average and std of nearest-neighbour angular deviation, keep n odd
+    ang_dev_moving_avg = calculate_moving_average(data[2],501)
+    ang_dev_moving_std = calculate_moving_std(data[2],501)
+
+    plt.figure()
+    plt.plot(time_vector, nn_dist_moving_avg)
+    plt.title("Average distance to nearest neighbour, moving average of nearest 500 points")
+    plt.xlabel("Time")
+    plt.ylabel("Average distance")
+
+    plt.figure()
+    plt.plot(time_vector, ang_dev_moving_avg)
+    plt.title("Cosine of angular deviation, moving averaging of the nearest 500 points")
+    plt.xlabel("Time")
+    plt.ylabel("Angular deviation")
+
+    plt.figure()
+    plt.plot(time_vector, nn_dist_moving_avg/np.max(nn_dist_moving_avg), time_vector, ang_dev_moving_avg)
 
 if prey_fitness_reader and predator_fitness_reader:
     prey_fitness_data = np.average(collect_data(prey_fitness_reader), 0)
