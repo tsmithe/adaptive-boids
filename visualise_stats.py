@@ -19,6 +19,13 @@ else:
 
 data_dir = config['DEFAULT']['data_dir']
 csv_reader = csv.reader(open(os.path.join(data_dir, 'prey_scalars.csv')))
+try:
+    prey_fitness_reader = csv.reader(open(os.path.join(data_dir, 'prey_fitness.csv')))
+    predator_fitness_reader = csv.reader(open(os.path.join(data_dir, 'predator_fitness.csv')))
+except FileNotFoundError:
+    prey_fitness_reader = None
+    predator_fitness_reader = None
+
 dt = eval(config['DEFAULT']['dt'])
 dump_stats_interval = eval(config['DEFAULT']['dump_stats_interval'])
 
@@ -103,5 +110,24 @@ plt.ylabel("Angular deviation")
 
 plt.figure()
 plt.plot(time_vector, nn_dist_moving_avg/np.max(nn_dist_moving_avg), time_vector, ang_dev_moving_avg)
+
+if prey_fitness_reader and predator_fitness_reader:
+    prey_fitness_data = np.average(collect_data(prey_fitness_reader), 0)
+    predator_fitness_data = np.average(collect_data(predator_fitness_reader), 0)
+
+    prey_fitness_moving_avg = calculate_moving_average(prey_fitness_data, 201)
+    predator_fitness_moving_avg = calculate_moving_average(predator_fitness_data, 201)
+
+    plt.figure()
+    plt.plot(time_vector, prey_fitness_moving_avg)
+    plt.title("Prey fitness; moving average with window size 200")
+    plt.xlabel("Time")
+    plt.ylabel("Fitness")
+
+    plt.figure()
+    plt.plot(time_vector, predator_fitness_moving_avg)
+    plt.title("Predator fitness; moving average with window size 200")
+    plt.xlabel("Time")
+    plt.ylabel("Fitness")
 
 plt.show()
