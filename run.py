@@ -24,6 +24,7 @@ def main(config):
     dt = eval(config['DEFAULT']['dt'])
     run_time = eval(config['DEFAULT']['run_time'])
     dump_stats_interval = eval(config['DEFAULT']['dump_stats_interval'])
+    flush_files_interval = eval(config['DEFAULT'].get('flush_files_interval', 'np.inf'))
 
     ecosystem = Ecosystem(config)
 
@@ -55,6 +56,9 @@ def main(config):
         # Compute statistics and dump data to disk
         if not iteration % dump_stats_interval:
             export_stats(prey_statistics, predator_statistics, ecosystem)
+        if not iteration % flush_files_interval:
+            prey_statistics.flush()
+            predator_statistics.flush()
 
         # Escape criterion: if avg life span not increasing for large no. of runs
 

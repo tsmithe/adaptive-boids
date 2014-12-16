@@ -22,31 +22,41 @@ class StatisticsHelper:
         
         if position:
             fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'positions.csv')
-            self.positions_csv = csv.writer(open(fname, self.file_mode))
+            f = open(fname, self.file_mode)
+            self.positions_file = f
+            self.positions_csv = csv.writer(f)
         else:
             self.positions_csv = None
             
         if velocities:
             fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'velocities.csv')
-            self.velocities_csv = csv.writer(open(fname, self.file_mode))
+            f = open(fname, self.file_mode)
+            self.velocities_file = f
+            self.velocities_csv = csv.writer(f)
         else:
             self.velocities_csv = None
 
         if centre_of_mass:
             fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'centre_of_mass.csv')
-            self.centre_of_mass_csv = csv.writer(open(fname, self.file_mode))
+            f = open(fname, self.file_mode)
+            self.centre_of_mass_file = f
+            self.centre_of_mass_csv = csv.writer(f)
         else:
             self.centre_of_mass_csv = None
 
         if fitness:
             fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'fitness.csv')
-            self.fitness_csv = csv.writer(open(fname, self.file_mode))
+            f = open(fname, self.file_mode)
+            self.fitness_file = f
+            self.fitness_csv = csv.writer(f)
         else:
             self.fitness_csv = None
             
         if scalars:
             fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'scalars.csv')
-            self.scalars_csv = csv.writer(open(fname, self.file_mode))
+            f = open(fname, self.file_mode)
+            self.scalars_file = f
+            self.scalars_csv = csv.writer(f)
         else:
             self.scalars_csv = None
 
@@ -72,7 +82,23 @@ class StatisticsHelper:
                                        self.angular_deviation])
 
         if self.fitness_csv:
-            self.fitness_csv.writerow(self.fitness)    
+            self.fitness_csv.writerow(self.fitness)
+
+    def flush(self):
+        if self.positions_csv:
+            self.positions_file.flush()
+            
+        if self.velocities_csv:
+            self.velocities_file.flush()
+
+        if self.centre_of_mass_csv:
+            self.centre_of_mass_file.flush()
+        
+        if self.scalars_csv:
+            self.scalars_file.flush()
+
+        if self.fitness_csv:
+            self.fitness_file.flush()        
 
     @property
     def positions(self):
