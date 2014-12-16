@@ -37,7 +37,7 @@ def collect_data(csv_reader):
         
     return np.transpose(frame_data)
     
-def time_vector(data_vector, dt, dump_stats_interval):
+def make_time_vector(data_vector, dt, dump_stats_interval):
     time_between_dumps = dt*dump_stats_interval
     time_vector = time_between_dumps*np.arange(len(data_vector))
     return time_vector
@@ -70,7 +70,7 @@ def calculate_moving_std(data_vector, n):
 data = collect_data(csv_reader)
 
 # Time vector
-time_vector = time_vector(data[0], dt, dump_stats_interval)
+time_vector = make_time_vector(data[0], dt, dump_stats_interval)
 
 # Moving average and std of nearest-neighbour distance, keep n odd
 nn_dist_moving_avg = calculate_moving_average(data[0],501)
@@ -119,12 +119,14 @@ if prey_fitness_reader and predator_fitness_reader:
     predator_fitness_moving_avg = calculate_moving_average(predator_fitness_data, 201)
 
     plt.figure()
+    time_vector = make_time_vector(prey_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, prey_fitness_moving_avg)
     plt.title("Prey fitness; moving average with window size 200")
     plt.xlabel("Time")
     plt.ylabel("Fitness")
 
     plt.figure()
+    time_vector = make_time_vector(predator_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, predator_fitness_moving_avg)
     plt.title("Predator fitness; moving average with window size 200")
     plt.xlabel("Time")
