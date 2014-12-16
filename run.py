@@ -27,10 +27,8 @@ def main(config):
 
     ecosystem = Ecosystem(config)
 
-    prey_statistics = StatisticsHelper('prey_', config, False,
-                                       True, True, True, True)
-    predator_statistics = StatisticsHelper('predator_', config, False,
-                                           True, True, True, True)
+    prey_statistics = StatisticsHelper('prey_', config)
+    predator_statistics = StatisticsHelper('predator_', config)
 
     t = 0
     iteration = 0

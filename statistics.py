@@ -4,10 +4,11 @@ import numpy as np
 class StatisticsHelper:
     
     def __init__(self, file_path, config, append_to_file = False,
-                 position = False,
-                 velocities = False,
-                 centre_of_mass = False,
-                 scalars = False,
+                 position = True,
+                 velocities = True,
+                 centre_of_mass = True,
+                 scalars = True,
+                 fitness = True
                  ):
         '''
         The named parameters correspond to statistical numbers that can be
@@ -36,6 +37,12 @@ class StatisticsHelper:
             self.centre_of_mass_csv = csv.writer(open(fname, self.file_mode))
         else:
             self.centre_of_mass_csv = None
+
+        if fitness:
+            fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'fitness.csv')
+            self.fitness_csv = csv.writer(open(fname, self.file_mode))
+        else:
+            self.fitness_csv = None
             
         if scalars:
             fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'scalars.csv')
@@ -64,6 +71,9 @@ class StatisticsHelper:
                                        self.average_distance_centre_of_mass,
                                        self.angular_deviation])
 
+        if self.fitness_csv:
+            self.fitness_csv.writerow(self.fitness)    
+
     @property
     def positions(self):
         return np.ndarray.flatten(np.array([b.position for b in self.boids]))
@@ -71,6 +81,10 @@ class StatisticsHelper:
     @property
     def velocities(self):
         return np.ndarray.flatten(np.array([b.velocity for b in self.boids]))
+
+    @property
+    def fitness(self):
+        return [b.fitness for b in self.boids]
     
     @property
     def average_nearest_neighbour(self):
