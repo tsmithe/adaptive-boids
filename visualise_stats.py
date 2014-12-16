@@ -116,7 +116,10 @@ if MOVING_AVG:
     normed_dist_avg = nn_dist_moving_avg/np.max(nn_dist_moving_avg)
     plt.plot(time_vector, normed_dist_avg, time_vector, ang_dev_moving_avg)
     rho, p = scipy.stats.pearsonr(normed_dist_avg, ang_dev_moving_avg)
-    print("Distance-deviation correlation (Spearman): %g with p-value %f" % (rho, p))
+    print("Distance-deviation correlation (Spearman; moving avg): %g with p-value %f" % (rho, p))
+
+rho, p = scipy.stats.pearsonr(data[0]/np.max(data[0]), data[2])
+print("Distance-deviation correlation (Spearman; full data): %g with p-value %f" % (rho, p))
 
 
 if prey_fitness_reader and predator_fitness_reader:
