@@ -3,6 +3,7 @@
 import configparser, csv, os, sys
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats
 
 MOVING_AVG = False
 
@@ -112,7 +113,11 @@ if MOVING_AVG:
     plt.ylabel("Angular deviation")
 
     plt.figure()
-    plt.plot(time_vector, nn_dist_moving_avg/np.max(nn_dist_moving_avg), time_vector, ang_dev_moving_avg)
+    normed_dist_avg = nn_dist_moving_avg/np.max(nn_dist_moving_avg)
+    plt.plot(time_vector, normed_dist_avg, time_vector, ang_dev_moving_avg)
+    rho, p = scipy.stats.pearsonr(normed_dist_avg, ang_dev_moving_avg)
+    print("Distance-deviation correlation (Spearman): %g with p-value %f" % (rho, p))
+
 
 if prey_fitness_reader and predator_fitness_reader:
     prey_fitness_data = np.average(collect_data(prey_fitness_reader), 0)
