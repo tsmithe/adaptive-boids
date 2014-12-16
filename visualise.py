@@ -97,11 +97,11 @@ boundary = plt.Circle((0, 0), WORLD_RADIUS, facecolor='none',
 ax.add_artist(boundary)
 text = ax.text(PLOT_MINIMUM+5, PLOT_MAXIMUM-20, "", withdash=True, fontsize=12)
 prey_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
-                        2*np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
+                        1.2*np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
                         edgecolor='black', linewidth=1)
 prey_quivers = ax.quiver([], [], width=0.5, units='dots', scale=0.08)
 predator_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
-                            2*np.pi*PREDATOR_RADIUS**2, facecolor='red', alpha=0.8,
+                            1.2*np.pi*PREDATOR_RADIUS**2, facecolor='red', alpha=0.8,
                             edgecolor='black', linewidth=1)
 predator_quivers = ax.quiver([], [], width=0.5, units='dots', scale=0.08)
 ax.set_xlim(PLOT_MINIMUM, PLOT_MAXIMUM)

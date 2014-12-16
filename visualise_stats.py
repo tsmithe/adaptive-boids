@@ -115,20 +115,20 @@ if prey_fitness_reader and predator_fitness_reader:
     prey_fitness_data = np.average(collect_data(prey_fitness_reader), 0)
     predator_fitness_data = np.average(collect_data(predator_fitness_reader), 0)
 
-    prey_fitness_moving_avg = calculate_moving_average(prey_fitness_data, 201)
-    predator_fitness_moving_avg = calculate_moving_average(predator_fitness_data, 201)
+    prey_fitness_moving_avg = calculate_moving_average(prey_fitness_data, 501)
+    predator_fitness_moving_avg = calculate_moving_average(predator_fitness_data, 501)
 
     plt.figure()
     time_vector = make_time_vector(prey_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, prey_fitness_moving_avg)
-    plt.title("Prey fitness; moving average with window size 200")
+    plt.title("Prey fitness; moving average with window size 500")
     plt.xlabel("Time")
     plt.ylabel("Fitness")
 
     plt.figure()
     time_vector = make_time_vector(predator_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, predator_fitness_moving_avg)
-    plt.title("Predator fitness; moving average with window size 200")
+    plt.title("Predator fitness; moving average with window size 500")
     plt.xlabel("Time")
     plt.ylabel("Fitness")
 
