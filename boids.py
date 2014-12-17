@@ -214,7 +214,7 @@ class FeedingAreaConfigurations:
     
     def get_info(self, name):
         if name == 'centered_feeding_area':
-            return ([[0,0]], 50)
+            return ([[0,0]], 100)
     
         if name == 'twins':
             return ([[-50,0],[50,0]], 25)

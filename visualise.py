@@ -101,11 +101,11 @@ boundary = plt.Circle((0, 0), WORLD_RADIUS, facecolor='none',
                       linestyle='dashed')
 ax.add_artist(boundary)
 
-text = ax.text(PLOT_MINIMUM+5, PLOT_MAXIMUM-20, "", withdash=True, fontsize=12)
-
 for location in FEEDING_AREA_LOCATIONS:
-    feeding_plot = plt.Circle(tuple(location), FEEDING_AREA_RADIUS, facecolor='green', linestyle='dashed')
+    feeding_plot = plt.Circle(tuple(location), FEEDING_AREA_RADIUS, facecolor='green', linestyle='dashed', alpha=0.3)
     ax.add_artist(feeding_plot)
+
+text = ax.text(PLOT_MINIMUM+5, PLOT_MAXIMUM-20, "", withdash=True, fontsize=12)
 
 prey_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
                         1.2*np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
