@@ -76,6 +76,12 @@ class Ecosystem:
 
         self.update_position_data()
         self.update_velocity_data()
+        
+        self.feeding_areas = FeedingAreas()
+        feeding_areas_locations = np.array([[-50,0],[50,0]])
+        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,25)
+        self.feeding_areas.add_feeding_area(feeding_area_group)
+        
 
     def update_position_data(self):
         self.prey_positions = np.array([p.position for p in self.prey])
@@ -153,7 +159,62 @@ class Ecosystem:
                 child.weights = self.best_predator_weights
                 child.weights = child.mutate()
                 self.predators.append(child)
+
+class FeedingAreas:
+    '''
+    Each cKDTree can only handle one radius for all feeding areas in it.
+    Therefore a larger structure is necessary. This class collects
+    FeedingAreaGroup. Each FeedingAreaGroup collects feeding areas with the
+    same radius.
+    '''
+    
+    def __init__(self):
+        self.areas = []
         
+    def add_feeding_area(self,feeding_area):
+        self.areas.append(feeding_area)
+        
+    def is_feeding(self,boid):
+        for a in self.areas:
+            if a.is_feeding(boid.position):
+                return True
+        return False
+    
+    def closest_feeding_area(self, boid):
+        closest_distance = np.inf
+        closest_area_location = None
+        for a in self.areas:
+            selected = a.closest_feeding_area(boid)
+            distance = quick_norm(boid.position-selected)
+            if distance < closest_distance:
+                closest_distance = distance
+                closest_area_location = selected
+        return closest_area_location
+    
+    def number_of_areas(self):
+        return len(self.areas)
+    
+    
+class FeedingAreaGroup:
+    '''
+    Represents a group of feeding areas, all with
+    the same radius.
+    '''
+    
+    def __init__(self, positions, radius):
+        self.radius = radius
+        self.positions = positions
+        self.tree = cKDTree(positions)
+        
+    def is_feeding(self, pt):
+        hits = self.tree.query_ball_point(pt,self.radius)
+        if len(hits) > 0:
+            return True
+        return False
+    
+    def closest_feeding_area(self, boid):
+        return self.tree.query(boid.position)
+
 class Boid:
 
     def __init__(self, ecosystem):
@@ -350,7 +411,7 @@ class Prey(Boid):
     def __init__(self, ecosystem):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too
         
-        self.number_of_weights = 6
+        self.number_of_weights = 7
         self.pick_weights_sd = self.ecosystem.weights_distribution_std
         self.max_speed = self.ecosystem.prey_max_speed
         self.original_max_speed = self.ecosystem.prey_max_speed
@@ -491,6 +552,9 @@ class Prey(Boid):
             sensors[5,:] = (((self.perception_length/distance_to_boundary) - 1)*
                 self.position/radial_position)
             
+        # Feeding area sensor
+        if self.ecosystem.feeding_areas.number_of_areas() > 0:
+            sensors[6,:] = self.position-self.ecosystem.feeding_areas.closest_feeding_area(self)
 
         force = np.dot(self.weights,sensors)/self.number_of_weights
         force_norm = quick_norm(force)
@@ -539,6 +603,11 @@ class Prey(Boid):
             return True
         """
 
+    def is_feeding(self):
+        if self.ecosystem.feeding_areas.is_feeding(self):
+            self.age -= self.dt
+        
+        
 class Predator(Boid):
     def __init__(self, ecosystem):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too

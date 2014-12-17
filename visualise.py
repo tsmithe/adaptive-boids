@@ -79,6 +79,7 @@ boundary = plt.Circle((0, 0), WORLD_RADIUS, facecolor='none',
                       linestyle='dashed')
 ax.add_artist(boundary)
 text = ax.text(PLOT_MINIMUM+5, PLOT_MAXIMUM-20, "", withdash=True, fontsize=12)
+
 prey_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
                         np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
                         edgecolor='black', linewidth=1)
