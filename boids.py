@@ -10,7 +10,6 @@ from scipy.spatial import cKDTree
 import fast_boids
 from fast_boids import quick_norm, quick_dot
 
-
 class Ecosystem:
     def __init__(self, config):
         self.dt = eval(config['DEFAULT']['dt'])
@@ -63,9 +62,8 @@ class Ecosystem:
         self.update_velocity_data()
         
         self.feeding_areas = FeedingAreas()
-        feeding_areas_locations = np.array([[-50,0],[50,0]])
-        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,25)
-        self.feeding_areas.add_feeding_area(feeding_area_group)
+        area_helper = FeedingAreaConfigurations()
+        area_helper.initialize_feeding_areas(eval(config['DEFAULT']['feeding_areas']), self)
         
 
     def update_position_data(self):
@@ -199,6 +197,37 @@ class FeedingAreaGroup:
     
     def closest_feeding_area(self, boid):
         return self.tree.query(boid.position)
+
+class FeedingAreaConfigurations:
+    '''
+    Note that even though the system supports several different groups
+    of feeding areas with different radii, there is currently no way to
+    convey such information to the visualization.
+    '''
+    
+    def initialize_feeding_areas(self, name, ecosystem):
+        if name == 'centered_feeding_area':
+            self.centered_feeding_area(ecosystem)
+            
+        if name == 'twins':
+            self.twins(ecosystem)
+    
+    def get_info(self, name):
+        if name == 'centered_feeding_area':
+            return ([[0,0]], 50)
+    
+        if name == 'twins':
+            return ([[-50,0],[50,0]], 25)
+    
+    def centered_feeding_area(self, ecosystem):
+        feeding_areas_locations = np.array([[0,0]])
+        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,50)
+        ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
+    
+    def twins(self, ecosystem):
+        feeding_areas_locations = np.array([[-50,0],[50,0]])
+        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,25)
+        ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
 
 class Boid:
     '''

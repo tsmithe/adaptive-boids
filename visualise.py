@@ -10,6 +10,8 @@ import configparser, csv, numpy as np, os, sys
 
 from fast_boids import quick_norm
 
+from boids import *
+
 if len(sys.argv) < 2:
     path = '.'
 else:
@@ -39,6 +41,9 @@ DATA_DIR = config['DEFAULT']['data_dir']
 
 PLOT_MINIMUM = -1.01*WORLD_RADIUS
 PLOT_MAXIMUM = 1.01*WORLD_RADIUS
+
+feeding_area_helper = FeedingAreaConfigurations()
+FEEDING_AREA_LOCATIONS, FEEDING_AREA_RADIUS = feeding_area_helper.get_info(eval(config['DEFAULT']['feeding_areas']))
 
 def animate(i, fig, ax, text,
             prey_graph, prey_quivers,
@@ -95,7 +100,12 @@ fig, ax = plt.subplots()
 boundary = plt.Circle((0, 0), WORLD_RADIUS, facecolor='none',
                       linestyle='dashed')
 ax.add_artist(boundary)
+
 text = ax.text(PLOT_MINIMUM+5, PLOT_MAXIMUM-20, "", withdash=True, fontsize=12)
+
+for location in FEEDING_AREA_LOCATIONS:
+    feeding_plot = plt.Circle(tuple(location), FEEDING_AREA_RADIUS, facecolor='green', linestyle='dashed')
+    ax.add_artist(feeding_plot)
 
 prey_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
                         1.2*np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
