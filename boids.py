@@ -449,7 +449,7 @@ class Prey(Boid):
     def __init__(self, ecosystem):
         Boid.__init__(self, ecosystem) # call the Boid constructor, too
         
-        self.number_of_weights = 7
+        self.number_of_weights = 6
         self.pick_weights_sd = self.ecosystem.weights_distribution_std
         self.max_speed = self.ecosystem.prey_max_speed
         self.original_max_speed = self.ecosystem.prey_max_speed
@@ -573,11 +573,6 @@ class Prey(Boid):
                     relative_predator_positions/distance_to_predator[:,np.newaxis])
             sensors[3,:] = (np.dot(((self.perception_length/distance_to_predator) - 1),
                 direction_to_predator)/number_of_visible_predators)
-            
-        # Feeding area sensor, assuming only one area and perfect vision.
-        relative_feeding_position = (self.ecosystem.feeding_area_position-self.position)
-#        sensors[4,:] = relative_feeding_position
-        sensors[4,:] = np.zeros(2)
         
         # Perimeter sensor
         # Prey distance to origin.
@@ -586,12 +581,12 @@ class Prey(Boid):
         distance_to_boundary = self.ecosystem.world_radius - radial_position
         if (distance_to_boundary < self.perception_length):
             # Perimeter visible.
-            sensors[5,:] = (((self.perception_length/distance_to_boundary) - 1)*
+            sensors[4,:] = (((self.perception_length/distance_to_boundary) - 1)*
                 self.position/radial_position)
             
         # Feeding area sensor
         if self.ecosystem.feeding_areas.number_of_areas() > 0:
-            sensors[6,:] = self.position-self.ecosystem.feeding_areas.closest_feeding_area(self)
+            sensors[5,:] = self.position-self.ecosystem.feeding_areas.closest_feeding_area(self)
 
         force = np.dot(self.weights,sensors)/self.number_of_weights
         force_norm = quick_norm(force)
