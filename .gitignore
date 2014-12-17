@@ -1,6 +1,7 @@
 fast_boids.c
 *csv
 data/
+lock
 
 #Byte-compiled / optimized / DLL files
 __pycache__/
