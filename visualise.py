@@ -108,7 +108,7 @@ for location in FEEDING_AREA_LOCATIONS:
 text = ax.text(PLOT_MINIMUM+5, PLOT_MAXIMUM-20, "", withdash=True, fontsize=12)
 
 prey_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
-                        1.2*np.pi*PREY_RADIUS**2, facecolor='green', alpha=0.8,
+                        1.2*np.pi*PREY_RADIUS**2, facecolor='white', alpha=0.8,
                         edgecolor='black', linewidth=1)
 prey_quivers = ax.quiver([], [], width=0.5, units='dots', scale=0.08)
 predator_graph = ax.scatter(100*PLOT_MINIMUM, 100*PLOT_MAXIMUM,
