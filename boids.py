@@ -211,6 +211,9 @@ class FeedingAreaConfigurations:
             
         if name == 'twins':
             self.twins(ecosystem)
+            
+        if name == None:
+            pass # Don't add any feeding area
     
     def get_info(self, name):
         if name == 'centered_feeding_area':
@@ -218,6 +221,9 @@ class FeedingAreaConfigurations:
     
         if name == 'twins':
             return ([[-50,0],[50,0]], 25)
+        
+        if name == None:
+            return ([],[])
     
     def centered_feeding_area(self, ecosystem):
         feeding_areas_locations = np.array([[0,0]])
