@@ -167,11 +167,11 @@ class FeedingAreas:
         closest_distance = np.inf
         closest_area_location = None
         for a in self.areas:
-            selected = a.closest_feeding_area(boid)
-            distance = quick_norm(boid.position-selected)
+            selected_position = a.closest_feeding_area_position(boid)
+            distance = quick_norm(boid.position-selected_position)
             if distance < closest_distance:
                 closest_distance = distance
-                closest_area_location = selected
+                closest_area_location = selected_position
         return closest_area_location
     
     def number_of_areas(self):
@@ -196,7 +196,12 @@ class FeedingAreaGroup:
         return False
     
     def closest_feeding_area(self, boid):
-        return self.tree.query(boid.position)
+        distance, index = self.tree.query(boid.position)
+        return index
+
+    def closest_feeding_area_position(self, boid):
+        feeding_area_index = self.closest_feeding_area(boid)
+        return self.tree.data[feeding_area_index,:]
 
 class FeedingAreaConfigurations:
     '''
@@ -251,8 +256,8 @@ class Boid:
     2. Fellow prey velocity
     3. Fellow prey "too close"
     4. Predator
-    5. Feeding area sensor
-    6. Perimeter sensor
+    5. Perimeter sensor
+    6. Feeding area sensor
     '''
 
     def __init__(self, ecosystem):
@@ -586,7 +591,7 @@ class Prey(Boid):
             
         # Feeding area sensor
         if self.ecosystem.feeding_areas.number_of_areas() > 0:
-            sensors[5,:] = self.position-self.ecosystem.feeding_areas.closest_feeding_area(self)
+            sensors[5,:] = self.ecosystem.feeding_areas.closest_feeding_area(self) - self.position
 
         force = np.dot(self.weights,sensors)/self.number_of_weights
         force_norm = quick_norm(force)
