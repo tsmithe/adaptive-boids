@@ -195,12 +195,12 @@ class FeedingAreaGroup:
             return True
         return False
     
-    def closest_feeding_area(self, boid):
+    def closest_feeding_area_index(self, boid):
         distance, index = self.tree.query(boid.position)
         return index
 
     def closest_feeding_area_position(self, boid):
-        feeding_area_index = self.closest_feeding_area(boid)
+        feeding_area_index = self.closest_feeding_area_index(boid)
         return self.tree.data[feeding_area_index,:]
 
 class FeedingAreaConfigurations:
