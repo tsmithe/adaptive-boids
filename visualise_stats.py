@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-MOVING_AVG = False
+MOVING_AVG = True
 
 if len(sys.argv) < 2:
     path = '.'
@@ -92,29 +92,33 @@ plt.xlabel("Time")
 plt.ylabel("Angular deviation")
 
 if MOVING_AVG:
+    
+    moving_average_window_size = eval(config['Visualisation']['running_average_window_size'])
+    
     # Moving average and std of nearest-neighbour distance, keep n odd
-    nn_dist_moving_avg = calculate_moving_average(data[0],501)
-    nn_dist_moving_std = calculate_moving_std(data[0],501)
+    nn_dist_moving_avg = calculate_moving_average(data[0],moving_average_window_size)
+    nn_dist_moving_std = calculate_moving_std(data[0], moving_average_window_size)
 
     # Moving average and std of nearest-neighbour angular deviation, keep n odd
-    ang_dev_moving_avg = calculate_moving_average(data[2],501)
-    ang_dev_moving_std = calculate_moving_std(data[2],501)
+    ang_dev_moving_avg = calculate_moving_average(data[2],moving_average_window_size)
+    ang_dev_moving_std = calculate_moving_std(data[2],moving_average_window_size)
 
     plt.figure()
     plt.plot(time_vector, nn_dist_moving_avg)
-    plt.title("Average distance to nearest neighbour, moving average of nearest 500 points")
+    plt.title("Average distance to nearest neighbour; moving average with window size "+str(moving_average_window_size-1) + ".")
     plt.xlabel("Time")
     plt.ylabel("Average distance")
 
     plt.figure()
     plt.plot(time_vector, ang_dev_moving_avg)
-    plt.title("Cosine of angular deviation, moving averaging of the nearest 500 points")
+    plt.title("Cosine of angular deviation; moving averaging with window size 500 "+str(moving_average_window_size-1) + ".")
     plt.xlabel("Time")
     plt.ylabel("Angular deviation")
 
     plt.figure()
     normed_dist_avg = nn_dist_moving_avg/nn_dist_moving_avg[0]
-    plt.plot(time_vector, normed_dist_avg, time_vector, ang_dev_moving_avg)
+    combined_handle = plt.plot(time_vector, normed_dist_avg, time_vector, ang_dev_moving_avg)
+    plt.legend(combined_handle, ['Normalised nn distance','Angular deviation'])
     rho, p = scipy.stats.pearsonr(normed_dist_avg, ang_dev_moving_avg)
     print("Distance-deviation correlation (Spearman; moving avg): %g with p-value %f" % (rho, p))
 
@@ -132,14 +136,14 @@ if prey_fitness_reader and predator_fitness_reader:
     plt.figure()
     time_vector = make_time_vector(prey_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, prey_fitness_moving_avg)
-    plt.title("Prey fitness; moving average with window size 500")
+    plt.title("Prey fitness; moving average with window size " + str(moving_average_window_size-1) + ".")
     plt.xlabel("Time")
     plt.ylabel("Fitness")
 
     plt.figure()
     time_vector = make_time_vector(predator_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, predator_fitness_moving_avg)
-    plt.title("Predator fitness; moving average with window size 500")
+    plt.title("Predator fitness; moving average with window size " +str(moving_average_window_size-1) + ".")
     plt.xlabel("Time")
     plt.ylabel("Fitness")
 
