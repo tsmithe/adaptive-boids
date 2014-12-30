@@ -6,6 +6,7 @@ Created on Wed Nov 26 16:00:03 2014
 
 import numpy as np
 from scipy.spatial import cKDTree
+import random
 
 import fast_boids
 from fast_boids import quick_norm, quick_dot
@@ -120,6 +121,10 @@ class Ecosystem:
             child = type(boids[0])(self)
             child.weights = boids[parent].weights
             child.weights = child.mutate()
+            
+            if self.feeding_areas.number_of_areas() > 0:
+                child.position = self.feeding_areas.get_random_position()
+            
             boids.append(child)
 
     def kill_prey(self):
@@ -177,6 +182,33 @@ class FeedingAreas:
     def number_of_areas(self):
         return len(self.areas)
     
+    def roulette_selection(self,weights):
+        cumulative = np.cumsum(weights)
+        r = np.random.random() * cumulative[-1]
+        for i, w in enumerate(cumulative):
+            if r < w: return i
+            
+    '''
+    This function first selects a feeding area randomly weighted
+    by r^2 (which is proportional to its area). Then it selects a
+    random position inside this feeding area.
+    '''
+    def get_random_position(self):
+        weights = []
+        for area in self.areas:
+            weights.append(area.radius**2)
+        selected_index = self.roulette_selection(weights)
+        selected_area = self.areas[selected_index]
+        
+        rsqrt = np.sqrt(random.random()*selected_area.radius)
+        theta = random.random()*2*np.pi
+        
+        # Recall that there is an intermediate layer, the feeding group,
+        # which may encapsulate several feeding areas of the same radius.
+        position = random.choice(selected_area.positions)
+        
+        return np.array([position[0] + rsqrt*np.cos(theta), position[1] + rsqrt*np.sin(theta)])
+    
     
 class FeedingAreaGroup:
     '''
@@ -222,7 +254,7 @@ class FeedingAreaConfigurations:
     
     def get_info(self, name):
         if name == 'centered_feeding_area':
-            return ([[0,0]], 100)
+            return ([[0,0]], 300)
     
         if name == 'twins':
             return ([[-50,0],[50,0]], 25)
@@ -232,7 +264,7 @@ class FeedingAreaConfigurations:
     
     def centered_feeding_area(self, ecosystem):
         feeding_areas_locations = np.array([[0,0]])
-        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,50)
+        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,300)
         ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
     
     def twins(self, ecosystem):
