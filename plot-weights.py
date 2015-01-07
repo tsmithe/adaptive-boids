@@ -41,9 +41,13 @@ def make_time_vector(data_vector, dt, dump_stats_interval):
 def plot_weights(csv_reader, title):
     plt.figure()
     plt.title(title)
+    plt.xlabel('Time')
+    plt.ylabel('Weight')
     data = collect_data(csv_reader)
     for i in range(data.shape[0]):
-        plt.plot(data[i,:], label='Weight %d' % (i+1))
+        plt.plot(make_time_vector(data[i,:], dt, dump_stats_interval),
+                 data[i,:],
+                 label='Weight %d' % (i+1))
     plt.legend(fancybox=True, fontsize='small', loc='upper left')
 
 plot_weights(prey_reader, 'Prey weights')
