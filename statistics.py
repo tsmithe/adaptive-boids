@@ -140,7 +140,7 @@ class StatisticsHelper:
 
     @property
     def avg_lifespan(self):
-        return np.mean([b.life_span for b in self.boids])
+        return np.mean([b.lifespan for b in self.boids])
     
     @property
     def average_nearest_neighbour(self):

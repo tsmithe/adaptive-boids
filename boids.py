@@ -33,6 +33,7 @@ class Ecosystem:
         self.prey_too_close_radius = eval(config['Prey']['boid_too_close_radius'])
         self.prey_weight = eval(config['Prey']['boid_weight'])
         self.prey_lifespan = eval(config['Prey']['boid_lifespan'])
+        self.prey_lifespan_increase_rate = eval(config['Prey']['boid_lifespan_increase_rate'])
 
         self.predator_radius = eval(config['Predator']['boid_radius'])
         self.predator_max_speed = eval(config['Predator']['boid_max_speed'])
@@ -46,6 +47,7 @@ class Ecosystem:
         self.predator_too_close_radius = eval(config['Predator']['boid_too_close_radius'])
         self.predator_weight = eval(config['Predator']['boid_weight'])
         self.predator_lifespan = eval(config['Predator']['boid_lifespan'])
+        self.predator_lifespan_increase_rate = eval(config['Predator']['boid_lifespan_increase_rate'])
         
         self.prey = []
         self.predators = []
@@ -189,27 +191,31 @@ class FeedingAreas:
         for i, w in enumerate(cumulative):
             if r < w: return i
             
-    '''
-    This function first selects a feeding area randomly weighted
-    by r^2 (which is proportional to its area). Then it selects a
-    random position inside this feeding area.
-    '''
     def get_random_position(self):
+        """
+        Selects an feeding area with roulettewheel selection proportional 
+        to its area. Uses the same algorithm as intialize_position() to chose
+        a random point inside the chosen feeding area.
+        """
         weights = []
         for area in self.areas:
             weights.append(area.radius**2)
         selected_index = self.roulette_selection(weights)
         selected_area = self.areas[selected_index]
-        
-        rsqrt = np.sqrt(random.random()*selected_area.radius)
+ 
+        radius_temporary = np.random.random() + np.random.random()
+        if (radius_temporary > 1):
+            radius = (2-radius_temporary)*selected_area.radius
+        else:
+            radius = radius_temporary*selected_area.radius
+ 
         theta = random.random()*2*np.pi
         
         # Recall that there is an intermediate layer, the feeding group,
         # which may encapsulate several feeding areas of the same radius.
         position = random.choice(selected_area.positions)
         
-        return np.array([position[0] + rsqrt*np.cos(theta), position[1] + rsqrt*np.sin(theta)])
-    
+        return np.array([position[0] + radius*np.cos(theta), position[1] + radius*np.sin(theta)])
     
 class FeedingAreaGroup:
     '''
@@ -256,7 +262,7 @@ class FeedingAreaConfigurations:
     
     def get_info(self, name):
         if name == 'centered_feeding_area':
-            return ([[0,0]], 300)
+            return ([[0,0]], 500)
     
         if name == 'twins':
             return ([[-50,0],[50,0]], 25)
@@ -320,17 +326,7 @@ class Boid:
           is effectively the same
         """
         # Get force from sensors.
-        new_acceleration = self.sensors/self.boid_weight
-        
-        # Check if boid outside perimeter.
-        position_norm = quick_norm(self.position)
-        if position_norm > self.ecosystem.world_radius:
-            # This could be used as a "force field":
-            boundary_acc = - (self.position*np.exp( # A suitable scaling parameter is needed
-                1.0*(position_norm-self.ecosystem.world_radius))/position_norm)
-            new_acceleration += boundary_acc
-        
-        return new_acceleration # use neural work instead!
+        return self.sensors/self.boid_weight
         
     def limit_direction_change(self, new_velocity):
         # Limit change in direction
@@ -372,12 +368,12 @@ class Boid:
         relative_positions = relative_positions[np.logical_and(
             relative_positions[:,0]!=0,relative_positions[:,1]!=0)]
             
-        # Check if boid collided with other boids
+        # Check if boid collided with other boids.
         number_of_collisions = np.size(relative_positions)/2
         if number_of_collisions > 0:
             # Reduce maximum velocity
             self.max_speed = self.min_speed
-            
+ 
             if (number_of_collisions == 1):
                 # Collided with one other predator.
                 # Calculate distance to boids in collision.
@@ -386,11 +382,6 @@ class Boid:
                 overlap = 2*self_radius - distance_between_boids
                 # Increase collision_overlap_sum.
                 self.collision_overlap_sum += overlap/2
-                # Relative position unit vector.
-                relative_unit_vector = relative_positions/distance_between_boids
-
-                # Calculate collision acceleration (Basically Pauli exclusion).
-                collision_acc = -(relative_unit_vector)*np.exp(overlap)
             else:
                 # Collided with multiple predators.
                 # Calculate distance to boids in collision.
@@ -399,16 +390,7 @@ class Boid:
                 overlap = 2*self_radius - distance_between_boids
                 # Increase the collision_overlap_sum with all the overlaps
                 self.collision_overlap_sum += np.sum(overlap)/2
-                # Relative position unit vector.
-                relative_unit_vector = relative_positions/distance_between_boids[:,np.newaxis]
-                # Calculate collision acceleration (Basically Pauli exclusion).
-                collision_acc = np.sum(-(relative_unit_vector)*np.exp(overlap[:,np.newaxis]),axis=0)/number_of_collisions
-                
-            collision_acc = collision_acc.flatten()
-            new_velocity += collision_acc * self.ecosystem.dt
-
-        # Return new_velocity   
-        return new_velocity
+        return
 
     def update_velocity(self, dt):
         self.velocity += self.acceleration * dt
@@ -445,11 +427,6 @@ class Boid:
         """
         mutated_weights = self.weights + np.random.normal(0.0,
             self.ecosystem.weights_distribution_std, self.number_of_weights)
-#        network_size = np.size(self.weights)
-#        mutated_weights = self.weights
-#        for i in np.arange(network_size):
-#            if (np.random.random() < self.ecosystem.mutation_probability):
-#                mutated_weights[i] -= 2*self.ecosystem.creep_range*(np.random.random()-0.5)
         return mutated_weights
         
     def find_neighbours(self, tree, radius):
@@ -499,7 +476,7 @@ class Prey(Boid):
         self.perception_angle = self.ecosystem.prey_perception_angle
         self.too_close_radius = self.ecosystem.prey_too_close_radius
         self.boid_weight = self.ecosystem.prey_weight
-        self.life_span = self.ecosystem.prey_lifespan
+        self.lifespan = self.ecosystem.prey_lifespan
         self.collision_rebound_rate = self.ecosystem.prey_collision_speed_rebound
 
         self.weights = np.random.normal(0.0,self.pick_weights_sd,self.number_of_weights)
@@ -523,8 +500,8 @@ class Prey(Boid):
         # Get acceleration from sensors and calculate wanted new velocity.
         new_velocity = self.velocity + self.acceleration * dt
         
-       # Check for collisions and limit max speed and reduce current speed in case of collison.
-        new_velocity = self.collision_check(new_velocity, self.ecosystem.prey_tree, 
+       # Check for collisions and limit max speed in case of collison.
+        self.collision_check(new_velocity, self.ecosystem.prey_tree, 
             self.ecosystem.prey_radius, 2*self.ecosystem.prey_radius)
             
         # Limit change of direction.
@@ -652,7 +629,6 @@ class Prey(Boid):
         how_far_out = (radial_position + self.ecosystem.predator_radius - 
             self.ecosystem.world_radius)
 
-        
         if len(collided_with) > 0:
             # Kill if eaten by predator
             return True
@@ -662,7 +638,7 @@ class Prey(Boid):
         elif (self.collision_overlap_sum >= self.ecosystem.prey_radius):
             # Kill if the prey has collided too much/many times
             return True
-        elif (self.age > self.life_span):
+        elif (self.age > self.lifespan):
             # Kill if too old.
             return True
         else:
@@ -677,7 +653,7 @@ class Prey(Boid):
 
     def is_feeding(self):
         if self.ecosystem.feeding_areas.is_feeding(self):
-            self.life_span -= self.dt
+            self.lifespan += self.ecosystem.boid_lifespan_increase_rate*self.dt
         
         
 class Predator(Boid):
@@ -694,7 +670,7 @@ class Predator(Boid):
         self.perception_angle = self.ecosystem.predator_perception_angle
         self.too_close_radius = self.ecosystem.predator_too_close_radius
         self.boid_weight = self.ecosystem.predator_weight
-        self.life_span = self.ecosystem.predator_lifespan
+        self.lifespan = self.ecosystem.predator_lifespan
         self.collision_rebound_rate = self.ecosystem.predator_collision_speed_rebound
         
         self.weights = np.random.normal(0.0,self.pick_weights_sd,self.number_of_weights)
@@ -726,11 +702,15 @@ class Predator(Boid):
         collided_with_prey = self.find_neighbours(self.ecosystem.prey_tree,
               self.ecosystem.predator_radius + self.ecosystem.prey_radius)
         if len(collided_with_prey) > 0:
+            # Slow down.
             self.max_speed = self.min_speed
+            # Increase kill count.
             self.kill_count += len(collided_with_prey)
+            # Increase lifespan.
+            self.lifespan += len(collided_with_prey)*self.ecosystem.predator_lifespan_increase_rate*self.ecosystem.dt
             
         # Check for collisions and limit max speed and reduce current speed in case of collison.
-        new_velocity = self.collision_check(new_velocity, self.ecosystem.predator_tree, 
+        self.collision_check(new_velocity, self.ecosystem.predator_tree, 
             self.ecosystem.predator_radius, 2*self.ecosystem.predator_radius)
             
         # Limit change of direction.
@@ -883,7 +863,7 @@ class Predator(Boid):
         # If too far out, kill boid
         if (how_far_out > 0.5):
             return True
-        elif (self.age > self.life_span):
+        elif (self.age > self.lifespan):
             return True
         elif (self.collision_overlap_sum >= self.ecosystem.predator_radius):
             # Kill if the predator has collided too much/many times
