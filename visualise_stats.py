@@ -122,6 +122,15 @@ if MOVING_AVG:
     rho, p = scipy.stats.pearsonr(normed_dist_avg, ang_dev_moving_avg)
     print("Distance-deviation correlation (Spearman; moving avg): %g with p-value %f" % (rho, p))
 
+try:
+    plt.figure()
+    plt.title("Average age and life-span of prey")
+    plt.plot(time_vector, data[3], label='Average age')
+    plt.plot(time_vector, data[4], label='Average life-span')
+    plt.xlabel('Time')
+    plt.legend(fancybox=True, loc='upper left', fontsize='small')
+except IndexError: pass
+    
 rho, p = scipy.stats.pearsonr(data[0]/np.max(data[0]), data[2])
 print("Distance-deviation correlation (Spearman; full data): %g with p-value %f" % (rho, p))
 

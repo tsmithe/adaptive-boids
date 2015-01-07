@@ -89,7 +89,9 @@ class StatisticsHelper:
         if self.scalars_csv:
             self.scalars_csv.writerow([self.average_nearest_neighbour,
                                        self.average_distance_centre_of_mass,
-                                       self.angular_deviation])
+                                       self.angular_deviation,
+                                       self.avg_age,
+                                       self.avg_lifespan])
 
         if self.fitness_csv:
             self.fitness_csv.writerow(self.fitness)
@@ -131,6 +133,14 @@ class StatisticsHelper:
     @property
     def avg_weights(self):
         return np.mean([b.weights for b in self.boids], axis=0)
+
+    @property
+    def avg_age(self):
+        return np.mean([b.age for b in self.boids])
+
+    @property
+    def avg_lifespan(self):
+        return np.mean([b.life_span for b in self.boids])
     
     @property
     def average_nearest_neighbour(self):

@@ -148,6 +148,7 @@ class Ecosystem:
                 child.weights = child.mutate()
                 self.predators.append(child)
 
+
 class FeedingAreas:
     '''
     Each cKDTree can only handle one radius for all feeding areas in it.
@@ -235,6 +236,7 @@ class FeedingAreaGroup:
         feeding_area_index = self.closest_feeding_area_index(boid)
         return self.tree.data[feeding_area_index,:]
 
+
 class FeedingAreaConfigurations:
     '''
     Note that even though the system supports several different groups
@@ -271,6 +273,7 @@ class FeedingAreaConfigurations:
         feeding_areas_locations = np.array([[-50,0],[50,0]])
         feeding_area_group = FeedingAreaGroup(feeding_areas_locations,25)
         ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
+
 
 class Boid:
     '''
@@ -674,7 +677,7 @@ class Prey(Boid):
 
     def is_feeding(self):
         if self.ecosystem.feeding_areas.is_feeding(self):
-            self.age -= self.dt
+            self.life_span -= self.dt
         
         
 class Predator(Boid):
