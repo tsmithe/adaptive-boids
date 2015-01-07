@@ -8,7 +8,8 @@ class StatisticsHelper:
                  velocities = True,
                  centre_of_mass = True,
                  scalars = True,
-                 fitness = True
+                 fitness = True,
+                 avg_weights = True
                  ):
         '''
         The named parameters correspond to statistical numbers that can be
@@ -60,6 +61,15 @@ class StatisticsHelper:
         else:
             self.scalars_csv = None
 
+        if avg_weights:
+            fname = os.path.join(config['DEFAULT']['data_dir'], file_path+'avg_weights.csv')
+            f = open(fname, self.file_mode)
+            self.avg_weights_file = f
+            self.avg_weights_csv = csv.writer(f)
+        else:
+            self.avg_weights_csv = None
+            
+
     def update_data(self, boids, tree):
         self.boids = boids
         self.tree = tree
@@ -84,6 +94,9 @@ class StatisticsHelper:
         if self.fitness_csv:
             self.fitness_csv.writerow(self.fitness)
 
+        if self.avg_weights_csv:
+            self.avg_weights_csv.writerow(self.avg_weights)
+                
     def flush(self):
         if self.positions_csv:
             self.positions_file.flush()
@@ -100,6 +113,9 @@ class StatisticsHelper:
         if self.fitness_csv:
             self.fitness_file.flush()        
 
+        if self.avg_weights_csv:
+            self.avg_weights_file.flush()
+
     @property
     def positions(self):
         return np.ndarray.flatten(np.array([b.position for b in self.boids]))
@@ -111,6 +127,10 @@ class StatisticsHelper:
     @property
     def fitness(self):
         return [b.fitness for b in self.boids]
+
+    @property
+    def avg_weights(self):
+        return np.mean([b.weights for b in self.boids], axis=0)
     
     @property
     def average_nearest_neighbour(self):
@@ -196,8 +216,3 @@ class StatisticsHelper:
                     neighbour_indices.append(indices[i,1])
         
         return self_indices, neighbour_indices
-
-
-
-
-
