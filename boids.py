@@ -33,7 +33,10 @@ class Ecosystem:
         self.prey_too_close_radius = eval(config['Prey']['boid_too_close_radius'])
         self.prey_weight = eval(config['Prey']['boid_weight'])
         self.prey_lifespan = eval(config['Prey']['boid_lifespan'])
-        self.prey_lifespan_increase_rate = eval(config['Prey']['boid_lifespan_increase_rate'])
+        try:
+            self.prey_lifespan_increase_rate = eval(config['Prey']['boid_lifespan_increase_rate'])
+        except KeyError:
+            self.prey_lifespan_increase_rate = 1.0
 
         self.predator_radius = eval(config['Predator']['boid_radius'])
         self.predator_max_speed = eval(config['Predator']['boid_max_speed'])
@@ -47,8 +50,11 @@ class Ecosystem:
         self.predator_too_close_radius = eval(config['Predator']['boid_too_close_radius'])
         self.predator_weight = eval(config['Predator']['boid_weight'])
         self.predator_lifespan = eval(config['Predator']['boid_lifespan'])
-        self.predator_lifespan_increase_rate = eval(config['Predator']['boid_lifespan_increase_rate'])
-        
+        try:
+            self.predator_lifespan_increase_rate = eval(config['Predator']['boid_lifespan_increase_rate'])
+        except KeyError:
+            self.predator_lifespan_increase_rate = 1.0
+
         self.prey = []
         self.predators = []
         
