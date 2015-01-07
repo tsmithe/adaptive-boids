@@ -48,7 +48,7 @@ def plot_weights(csv_reader, title):
         plt.plot(make_time_vector(data[i,:], dt, dump_stats_interval),
                  data[i,:],
                  label='Weight %d' % (i+1))
-    plt.legend(fancybox=True, fontsize='small', loc='upper left')
+    plt.legend(fancybox=True, fontsize='small', loc='upper left', framealpha=0.8)
 
 plot_weights(prey_reader, 'Prey weights')
 plot_weights(predator_reader, 'Predator weights')
