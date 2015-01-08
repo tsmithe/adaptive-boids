@@ -180,27 +180,16 @@ class FeedingAreas:
     def closest_feeding_area(self, boid):
         closest_distance = np.inf
         closest_area_location = None
-        for a in self.areas:
-            selected_position = a.closest_feeding_area_position(boid)
-            distance = quick_norm(boid.position-selected_position)
-            if distance < closest_distance:
-                closest_distance = distance
-                closest_area_location = selected_position
-        return closest_area_location
-    
-    def closest_feeding_area_radius(self, boid):
-        closest_distance = np.inf
-        closest_area_location = None
         closest_area_radius = None
         for a in self.areas:
             selected_position = a.closest_feeding_area_position(boid)
             distance = quick_norm(boid.position-selected_position)
             if distance < closest_distance:
-                closest_area_radius = a.radius
                 closest_distance = distance
                 closest_area_location = selected_position
+                closest_area_radius = a.radius
                 
-        return closest_area_radius
+        return (closest_area_location, closest_area_radius)
     
     def number_of_areas(self):
         return len(self.areas)
@@ -292,7 +281,7 @@ class FeedingAreaConfigurations:
     
     def centered_feeding_area(self, ecosystem):
         feeding_areas_locations = np.array([[0,0]])
-        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,300)
+        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,500)
         ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
     
     def twins(self, ecosystem):
@@ -426,7 +415,6 @@ class Boid:
         # Return new_velocity   
         return new_velocity
 
-
     def update_velocity(self, dt):
         self.velocity += self.acceleration * dt
 
@@ -535,8 +523,8 @@ class Prey(Boid):
         # Get acceleration from sensors and calculate wanted new velocity.
         new_velocity = self.velocity + self.acceleration * dt
         
-        # Check for collisions and limit max speed in case of collison.
-        new_velocity = self.collision_check(new_velocity, self.ecosystem.prey_tree, 
+        # Check for collisions and limit max speed and reduce current speed in case of collison.
+        new_velocity = self.collision_check(new_velocity, self.ecosystem.prey_tree,  
             self.ecosystem.prey_radius, 2*self.ecosystem.prey_radius)
             
         # Limit change of direction.
@@ -638,8 +626,7 @@ class Prey(Boid):
             
         # Feeding area sensor
         if self.ecosystem.feeding_areas.number_of_areas() > 0:
-            feeding_area_position = self.ecosystem.feeding_areas.closest_feeding_area(self)
-            feeding_area_radius = self.ecosystem.feeding_areas.closest_feeding_area_radius(self)
+            (feeding_area_position, feeding_area_radius) = self.ecosystem.feeding_areas.closest_feeding_area(self)
             distance_to_center = quick_norm(feeding_area_position-self.position)
             if distance_to_center-feeding_area_radius > 0:
                 sensors[5,:] = (distance_to_center-feeding_area_radius)*(feeding_area_position-self.position)/distance_to_center
@@ -694,7 +681,7 @@ class Prey(Boid):
 
     def is_feeding(self):
         if self.ecosystem.feeding_areas.is_feeding(self):
-            self.lifespan += self.ecosystem.boid_lifespan_increase_rate*self.dt
+            self.lifespan += self.ecosystem.prey_lifespan_increase_rate*self.dt
         
         
 class Predator(Boid):
@@ -742,16 +729,17 @@ class Predator(Boid):
         # Check if predator collided with prey, i.e. eating it.
         collided_with_prey = self.find_neighbours(self.ecosystem.prey_tree,
               self.ecosystem.predator_radius + self.ecosystem.prey_radius)
-        if len(collided_with_prey) > 0:
+        number_of_eaten_prey = len(collided_with_prey)
+        if number_of_eaten_prey > 0:
             # Slow down.
             self.max_speed = self.min_speed
             # Increase kill count.
-            self.kill_count += len(collided_with_prey)
+            self.kill_count += number_of_eaten_prey
             # Increase lifespan.
-            self.lifespan += len(collided_with_prey)*self.ecosystem.predator_lifespan_increase_rate*self.ecosystem.dt
+            self.lifespan += number_of_eaten_prey*self.ecosystem.predator_lifespan_increase_rate*self.ecosystem.dt
             
         # Check for collisions and limit max speed and reduce current speed in case of collison.
-        new_velocity = self.collision_check(new_velocity, self.ecosystem.predator_tree, 
+        new_velocity = self.collision_check(new_velocity, self.ecosystem.predator_tree,  
             self.ecosystem.predator_radius, 2*self.ecosystem.predator_radius)
             
         # Limit change of direction.
