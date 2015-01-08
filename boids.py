@@ -94,20 +94,9 @@ class Ecosystem:
         for b in self.predators + self.prey:
             b.update_velocity(self.dt)
         
-    def update_stamina(self):
-        for b in self.prey:
-            if (quick_norm(b.position-self.feeding_area_position)<
-                self.feeding_area_radius):
-                b.eating = True
-                if b.stamina < 1:
-                    b.stamina += 0.01*self.dt
-            else:
-                b.eating = False
-                if b.stamina > 0:
-                    b.stamina -= 0.01*self.dt
-
     def update_age(self):
         for b in self.predators + self.prey:
+            b.is_feeding()
             b.age += self.dt
 
     def roulette_selection(self,weights):
@@ -681,7 +670,7 @@ class Prey(Boid):
 
     def is_feeding(self):
         if self.ecosystem.feeding_areas.is_feeding(self):
-            self.lifespan += self.ecosystem.prey_lifespan_increase_rate*self.dt
+            self.lifespan += self.ecosystem.prey_lifespan_increase_rate*self.ecosystem.dt
         
         
 class Predator(Boid):
@@ -899,3 +888,6 @@ class Predator(Boid):
             return True
         else:
             return False
+            
+    def is_feeding(self):
+        pass

@@ -42,10 +42,6 @@ def main(config):
         #  -- prey collided with feeding area marked as feeding
         #  -- collisions induce velocity change
 
-        # Feeding
-        #  -- those boids marked as feeding receive a linear(?) increase in stamina
-        ecosystem.update_stamina()
-
         # Kill and spawn
         #  -- check for boids marked as dead, and respawn them
         #  -- update lifespan values for living boids
