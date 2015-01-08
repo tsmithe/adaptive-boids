@@ -92,8 +92,11 @@ plt.xlabel("Time")
 plt.ylabel("Angular deviation")
 
 if MOVING_AVG:
-    
-    moving_average_window_size = eval(config['Visualisation']['running_average_window_size'])
+
+    try:
+        moving_average_window_size = eval(config['Visualisation']['running_average_window_size'])
+    except KeyError:
+        moving_average_window_size = 501
     
     # Moving average and std of nearest-neighbour distance, keep n odd
     nn_dist_moving_avg = calculate_moving_average(data[0],moving_average_window_size)
@@ -105,13 +108,13 @@ if MOVING_AVG:
 
     plt.figure()
     plt.plot(time_vector, nn_dist_moving_avg)
-    plt.title("Average distance to nearest neighbour; moving average with window size "+str(moving_average_window_size-1) + ".")
+    plt.title("Average distance to nearest neighbour; moving average with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Average distance")
 
     plt.figure()
     plt.plot(time_vector, ang_dev_moving_avg)
-    plt.title("Cosine of angular deviation; moving averaging with window size 500 "+str(moving_average_window_size-1) + ".")
+    plt.title("Cosine of angular deviation; moving averaging with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Angular deviation")
 
@@ -145,14 +148,14 @@ if prey_fitness_reader and predator_fitness_reader:
     plt.figure()
     time_vector = make_time_vector(prey_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, prey_fitness_moving_avg)
-    plt.title("Prey fitness; moving average with window size " + str(moving_average_window_size-1) + ".")
+    plt.title("Prey fitness; moving average with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Fitness")
 
     plt.figure()
     time_vector = make_time_vector(predator_fitness_data, dt, dump_stats_interval)
     plt.plot(time_vector, predator_fitness_moving_avg)
-    plt.title("Predator fitness; moving average with window size " +str(moving_average_window_size-1) + ".")
+    plt.title("Predator fitness; moving average with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Fitness")
 
