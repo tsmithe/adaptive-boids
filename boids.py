@@ -402,6 +402,11 @@ class Boid:
                 overlap = 2*self_radius - distance_between_boids
                 # Increase collision_overlap_sum.
                 self.collision_overlap_sum += overlap/2
+                # Relative position unit vector.
+                relative_unit_vector = relative_positions/distance_between_boids
+
+                # Calculate collision acceleration (Basically Pauli exclusion).
+                collision_acc = -(relative_unit_vector)*np.exp(overlap)
             else:
                 # Collided with multiple predators.
                 # Calculate distance to boids in collision.
@@ -410,7 +415,17 @@ class Boid:
                 overlap = 2*self_radius - distance_between_boids
                 # Increase the collision_overlap_sum with all the overlaps
                 self.collision_overlap_sum += np.sum(overlap)/2
-        return
+                # Relative position unit vector.
+                relative_unit_vector = relative_positions/distance_between_boids[:,np.newaxis]
+                # Calculate collision acceleration (Basically Pauli exclusion).
+                collision_acc = np.sum(-(relative_unit_vector)*np.exp(overlap[:,np.newaxis]),axis=0)/number_of_collisions
+                
+            collision_acc = collision_acc.flatten()
+            new_velocity += collision_acc * self.ecosystem.dt
+
+        # Return new_velocity   
+        return new_velocity
+
 
     def update_velocity(self, dt):
         self.velocity += self.acceleration * dt
@@ -520,8 +535,8 @@ class Prey(Boid):
         # Get acceleration from sensors and calculate wanted new velocity.
         new_velocity = self.velocity + self.acceleration * dt
         
-       # Check for collisions and limit max speed in case of collison.
-        self.collision_check(new_velocity, self.ecosystem.prey_tree, 
+        # Check for collisions and limit max speed in case of collison.
+        new_velocity = self.collision_check(new_velocity, self.ecosystem.prey_tree, 
             self.ecosystem.prey_radius, 2*self.ecosystem.prey_radius)
             
         # Limit change of direction.
@@ -736,7 +751,7 @@ class Predator(Boid):
             self.lifespan += len(collided_with_prey)*self.ecosystem.predator_lifespan_increase_rate*self.ecosystem.dt
             
         # Check for collisions and limit max speed and reduce current speed in case of collison.
-        self.collision_check(new_velocity, self.ecosystem.predator_tree, 
+        new_velocity = self.collision_check(new_velocity, self.ecosystem.predator_tree, 
             self.ecosystem.predator_radius, 2*self.ecosystem.predator_radius)
             
         # Limit change of direction.
