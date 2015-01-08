@@ -5,6 +5,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
+prey_weight_labels = {
+    0: 'Prey positions',
+    1: 'Prey velocities',
+    2: 'Boid too close',
+    3: 'Predator position(s)',
+    4: 'Boundary proximity',
+    5: 'Feeding area position'
+}
+
+predator_weight_labels = {
+    0: 'Prey positions',
+    1: 'Prey velocities',
+    2: 'Prey tracking',
+    3: 'Predator position(s)',
+    4: 'Predator velocities',
+    5: 'Boid too close',
+    6: 'Boundary proximity'
+}
+
 if len(sys.argv) < 2:
     path = '.'
 else:
@@ -38,7 +57,7 @@ def make_time_vector(data_vector, dt, dump_stats_interval):
     time_vector = time_between_dumps*np.arange(len(data_vector))
     return time_vector
 
-def plot_weights(csv_reader, title):
+def plot_weights(csv_reader, title, weight_labels):
     plt.figure()
     plt.title(title)
     plt.xlabel('Time')
@@ -47,11 +66,11 @@ def plot_weights(csv_reader, title):
     for i in range(data.shape[0]):
         plt.plot(make_time_vector(data[i,:], dt, dump_stats_interval),
                  data[i,:],
-                 label='Weight %d' % (i+1))
+                 label=weight_labels[i])
     plt.legend(fancybox=True, fontsize='small', loc='upper left', framealpha=0.8)
 
-plot_weights(prey_reader, 'Prey weights')
-plot_weights(predator_reader, 'Predator weights')
+plot_weights(prey_reader, 'Prey weights', prey_weight_labels)
+plot_weights(predator_reader, 'Predator weights', predator_weight_labels)
 
 plt.show()
 
