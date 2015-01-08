@@ -618,7 +618,9 @@ class Prey(Boid):
             (feeding_area_position, feeding_area_radius) = self.ecosystem.feeding_areas.closest_feeding_area(self)
             distance_to_center = quick_norm(feeding_area_position-self.position)
             if distance_to_center-feeding_area_radius > 0:
-                sensors[5,:] = (distance_to_center-feeding_area_radius)*(feeding_area_position-self.position)/distance_to_center
+                sensors[5,:] = ((distance_to_center-feeding_area_radius)*
+                    (feeding_area_position-self.position)/
+                    (distance_to_center*(self.lifespan-self.age+1)))
             else:
                 sensors[5,:] = 0
 
