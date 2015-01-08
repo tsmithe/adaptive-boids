@@ -180,27 +180,16 @@ class FeedingAreas:
     def closest_feeding_area(self, boid):
         closest_distance = np.inf
         closest_area_location = None
-        for a in self.areas:
-            selected_position = a.closest_feeding_area_position(boid)
-            distance = quick_norm(boid.position-selected_position)
-            if distance < closest_distance:
-                closest_distance = distance
-                closest_area_location = selected_position
-        return closest_area_location
-    
-    def closest_feeding_area_radius(self, boid):
-        closest_distance = np.inf
-        closest_area_location = None
         closest_area_radius = None
         for a in self.areas:
             selected_position = a.closest_feeding_area_position(boid)
             distance = quick_norm(boid.position-selected_position)
             if distance < closest_distance:
-                closest_area_radius = a.radius
                 closest_distance = distance
                 closest_area_location = selected_position
+                closest_area_radius = a.radius
                 
-        return closest_area_radius
+        return (closest_area_location, closest_area_radius)
     
     def number_of_areas(self):
         return len(self.areas)
@@ -623,8 +612,7 @@ class Prey(Boid):
             
         # Feeding area sensor
         if self.ecosystem.feeding_areas.number_of_areas() > 0:
-            feeding_area_position = self.ecosystem.feeding_areas.closest_feeding_area(self)
-            feeding_area_radius = self.ecosystem.feeding_areas.closest_feeding_area_radius(self)
+            (feeding_area_position, feeding_area_radius) = self.ecosystem.feeding_areas.closest_feeding_area(self)
             distance_to_center = quick_norm(feeding_area_position-self.position)
             if distance_to_center-feeding_area_radius > 0:
                 sensors[5,:] = (distance_to_center-feeding_area_radius)*(feeding_area_position-self.position)/distance_to_center
