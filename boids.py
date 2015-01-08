@@ -188,6 +188,20 @@ class FeedingAreas:
                 closest_area_location = selected_position
         return closest_area_location
     
+    def closest_feeding_area_radius(self, boid):
+        closest_distance = np.inf
+        closest_area_location = None
+        closest_area_radius = None
+        for a in self.areas:
+            selected_position = a.closest_feeding_area_position(boid)
+            distance = quick_norm(boid.position-selected_position)
+            if distance < closest_distance:
+                closest_area_radius = a.radius
+                closest_distance = distance
+                closest_area_location = selected_position
+                
+        return closest_area_radius
+    
     def number_of_areas(self):
         return len(self.areas)
     
@@ -208,13 +222,13 @@ class FeedingAreas:
             weights.append(area.radius**2)
         selected_index = self.roulette_selection(weights)
         selected_area = self.areas[selected_index]
- 
+
         radius_temporary = np.random.random() + np.random.random()
         if (radius_temporary > 1):
             radius = (2-radius_temporary)*selected_area.radius
         else:
             radius = radius_temporary*selected_area.radius
- 
+
         theta = random.random()*2*np.pi
         
         # Recall that there is an intermediate layer, the feeding group,
@@ -609,7 +623,13 @@ class Prey(Boid):
             
         # Feeding area sensor
         if self.ecosystem.feeding_areas.number_of_areas() > 0:
-            sensors[5,:] = self.ecosystem.feeding_areas.closest_feeding_area(self) - self.position
+            feeding_area_position = self.ecosystem.feeding_areas.closest_feeding_area(self)
+            feeding_area_radius = self.ecosystem.feeding_areas.closest_feeding_area_radius(self)
+            distance_to_center = quick_norm(feeding_area_position-self.position)
+            if distance_to_center-feeding_area_radius > 0:
+                sensors[5,:] = (distance_to_center-feeding_area_radius)*(feeding_area_position-self.position)/distance_to_center
+            else:
+                sensors[5,:] = 0
 
         force = np.dot(self.weights,sensors)/self.number_of_weights
         force_norm = quick_norm(force)
