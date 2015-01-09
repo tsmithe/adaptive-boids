@@ -13,12 +13,15 @@ from fast_boids import quick_norm, quick_dot
 
 class Ecosystem:
     def __init__(self, config):
+
+        self.feeding_areas = FeedingAreas()
+        area_helper = FeedingAreaConfigurations()
+        area_helper.initialize_feeding_areas(eval(config['DEFAULT']['feeding_areas']), self)
+
         self.dt = eval(config['DEFAULT']['dt'])
         self.world_radius = eval(config['DEFAULT']['world_radius'])
         self.num_prey = eval(config['DEFAULT']['num_prey'])
         self.num_predators = eval(config['DEFAULT']['num_predators'])
-        self.feeding_area_position = np.asarray(eval(config['DEFAULT']['feeding_area_position']))
-        self.feeding_area_radius = eval(config['DEFAULT']['feeding_area_radius'])
         self.weights_distribution_std = eval(config['DEFAULT']['weights_distribution_std'])
 
         self.prey_radius = eval(config['Prey']['boid_radius'])
@@ -68,12 +71,7 @@ class Ecosystem:
             self.predators.append(Predator(self))
 
         self.update_position_data()
-        self.update_velocity_data()
-        
-        self.feeding_areas = FeedingAreas()
-        area_helper = FeedingAreaConfigurations()
-        area_helper.initialize_feeding_areas(eval(config['DEFAULT']['feeding_areas']), self)
-        
+        self.update_velocity_data()       
 
     def update_position_data(self):
         self.prey_positions = np.array([p.position for p in self.prey])
@@ -247,36 +245,24 @@ class FeedingAreaConfigurations:
     of feeding areas with different radii, there is currently no way to
     convey such information to the visualization.
     '''
-    
+    configurations = {
+        'centered_feeding_area': ([[0,0]], 500),
+        'twins': ([[-50,0],[50,0]], 25),
+        'triplets': ([[-100, -75], [100, 0], [-100, 75]], 15)
+    }
+                      
     def initialize_feeding_areas(self, name, ecosystem):
-        if name == 'centered_feeding_area':
-            self.centered_feeding_area(ecosystem)
-            
-        if name == 'twins':
-            self.twins(ecosystem)
-            
-        if name == None:
-            pass # Don't add any feeding area
+        if name in self.configurations.keys():
+            feeding_area_locations = np.array(self.configurations[name][0])
+            feeding_area_group = FeedingAreaGroup(feeding_area_locations,
+                                                  self.configurations[name][1])
+            ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
     
     def get_info(self, name):
-        if name == 'centered_feeding_area':
-            return ([[0,0]], 500)
-    
-        if name == 'twins':
-            return ([[-50,0],[50,0]], 25)
-        
-        if name == None:
+        if name in self.configurations.keys():
+            return self.configurations[name]
+        else:
             return ([],[])
-    
-    def centered_feeding_area(self, ecosystem):
-        feeding_areas_locations = np.array([[0,0]])
-        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,500)
-        ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
-    
-    def twins(self, ecosystem):
-        feeding_areas_locations = np.array([[-50,0],[50,0]])
-        feeding_area_group = FeedingAreaGroup(feeding_areas_locations,25)
-        ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
 
 
 class Boid:
@@ -411,6 +397,9 @@ class Boid:
         self.position += self.velocity * dt
         
     def initialize_position(self):
+        if self.ecosystem.feeding_areas.areas:
+            return self.ecosystem.feeding_areas.get_random_position()
+
         angle = 2*np.pi*np.random.random()
         radius_temporary = np.random.random() + np.random.random()
         if (radius_temporary > 1):
@@ -618,7 +607,9 @@ class Prey(Boid):
             (feeding_area_position, feeding_area_radius) = self.ecosystem.feeding_areas.closest_feeding_area(self)
             distance_to_center = quick_norm(feeding_area_position-self.position)
             if distance_to_center-feeding_area_radius > 0:
-                sensors[5,:] = (distance_to_center-feeding_area_radius)*(feeding_area_position-self.position)/distance_to_center
+                sensors[5,:] = ((distance_to_center-feeding_area_radius)*
+                    (feeding_area_position-self.position)/
+                    (distance_to_center*(self.lifespan-self.age+1)))
             else:
                 sensors[5,:] = 0
 
