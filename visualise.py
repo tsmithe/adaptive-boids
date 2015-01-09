@@ -43,7 +43,12 @@ PLOT_MINIMUM = -1.01*WORLD_RADIUS
 PLOT_MAXIMUM = 1.01*WORLD_RADIUS
 
 feeding_area_helper = FeedingAreaConfigurations()
-FEEDING_AREA_LOCATIONS, FEEDING_AREA_RADIUS = feeding_area_helper.get_info(eval(config['DEFAULT']['feeding_areas']))
+feeding_area_config = eval(config['DEFAULT']['feeding_areas'])
+if isinstance(feeding_area_config, tuple):
+    FEEDING_AREA_LOCATIONS, FEEDING_AREA_RADIUS = feeding_area_config
+else:
+    FEEDING_AREA_LOCATIONS, FEEDING_AREA_RADIUS = feeding_area_helper.get_info(
+        feeding_area_config)
 
 def animate(i, fig, ax, text,
             prey_graph, prey_quivers,

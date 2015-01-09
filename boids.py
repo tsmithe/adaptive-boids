@@ -248,10 +248,20 @@ class FeedingAreaConfigurations:
     configurations = {
         'centered_feeding_area': ([[0,0]], 500),
         'twins': ([[-50,0],[50,0]], 25),
-        'triplets': ([[-100, -75], [100, 0], [-100, 75]], 15)
+        'triplets': ([[-50, -50], [50, 0], [-50, 50]], 20)
     }
                       
-    def initialize_feeding_areas(self, name, ecosystem):
+    def initialize_feeding_areas(self, name_or_config, ecosystem):
+        if isinstance(name_or_config, tuple):
+            config = name_or_config
+            feeding_area_locations = np.array(config[0])
+            feeding_area_group = FeedingAreaGroup(feeding_area_locations,
+                                                  config[1])
+            ecosystem.feeding_areas.add_feeding_area(feeding_area_group)
+            return
+
+        else:
+            name = name_or_config
         if name in self.configurations.keys():
             feeding_area_locations = np.array(self.configurations[name][0])
             feeding_area_group = FeedingAreaGroup(feeding_area_locations,
