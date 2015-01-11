@@ -75,21 +75,25 @@ data = collect_data(csv_reader)
 # Time vector
 time_vector = make_time_vector(data[0], dt, dump_stats_interval)
 
+plt.figure()
 plt.plot(time_vector, data[0])
 plt.title("Average distance to nearest neighbour")
 plt.xlabel("Time")
 plt.ylabel("Average distance")
+plt.xlim(time_vector[0], time_vector[-1])
 
 plt.figure()
 plt.plot(time_vector, data[1])
 plt.title("Average distance to centre of mass")
 plt.xlabel("Time")
+plt.xlim(time_vector[0], time_vector[-1])
 
 plt.figure()
 plt.plot(time_vector, data[2])
 plt.title("Cosine of angular deviation")
 plt.xlabel("Time")
 plt.ylabel("Angular deviation")
+plt.xlim(time_vector[0], time_vector[-1])
 
 if MOVING_AVG:
 
@@ -111,17 +115,20 @@ if MOVING_AVG:
     plt.title("Average distance to nearest neighbour; moving average with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Average distance")
+    plt.xlim(time_vector[0], time_vector[-1])
 
     plt.figure()
     plt.plot(time_vector, ang_dev_moving_avg)
     plt.title("Cosine of angular deviation; moving averaging with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Angular deviation")
+    plt.xlim(time_vector[0], time_vector[-1])
 
     plt.figure()
     normed_dist_avg = nn_dist_moving_avg/nn_dist_moving_avg[0]
     combined_handle = plt.plot(time_vector, normed_dist_avg, time_vector, ang_dev_moving_avg)
     plt.legend(combined_handle, ['Normalised nn distance','Angular deviation'])
+    plt.xlim(time_vector[0], time_vector[-1])
     rho, p = scipy.stats.pearsonr(normed_dist_avg, ang_dev_moving_avg)
     print("Distance-deviation correlation (Spearman; moving avg): %g with p-value %f" % (rho, p))
 
@@ -132,6 +139,7 @@ try:
     plt.plot(time_vector, data[4], label='Average life-span')
     plt.xlabel('Time')
     plt.legend(fancybox=True, loc='upper left', fontsize='small')
+    plt.xlim(time_vector[0], time_vector[-1])
 except IndexError: pass
     
 rho, p = scipy.stats.pearsonr(data[0]/np.max(data[0]), data[2])
@@ -151,6 +159,7 @@ if prey_fitness_reader and predator_fitness_reader:
     plt.title("Prey fitness; moving average with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Fitness")
+    plt.xlim(time_vector[0], time_vector[-1])
 
     plt.figure()
     time_vector = make_time_vector(predator_fitness_data, dt, dump_stats_interval)
@@ -158,5 +167,6 @@ if prey_fitness_reader and predator_fitness_reader:
     plt.title("Predator fitness; moving average with window size %d" % (moving_average_window_size-1))
     plt.xlabel("Time")
     plt.ylabel("Fitness")
+    plt.xlim(time_vector[0], time_vector[-1])
 
 plt.show()
