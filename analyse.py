@@ -10,8 +10,8 @@ DPI = 150
 MOVING_AVG = True
 
 prey_weight_labels = {
-    0: 'Prey positions',
-    1: 'Prey velocities',
+    0: 'Fellow prey positions',
+    1: 'Fellow prey velocities',
     2: 'Boid too close',
     3: 'Predator position(s)',
     4: 'Boundary proximity',
@@ -113,9 +113,9 @@ def plot_weights(csv_reader, title, weight_labels):
     ax.set_ylabel('Weight')
     data = collect_data(csv_reader)
     for i in range(data.shape[0]):
-        ax.plot(make_time_vector(data[i,:], dt, dump_stats_interval),
-                data[i,:],
-                label=weight_labels[i])
+        time_vector = make_time_vector(data[i,:], dt, dump_stats_interval)
+        ax.plot(time_vector, data[i,:], label=weight_labels[i])
+    ax.set_xlim(time_vector[0], time_vector[-1])
     plt.legend(fancybox=True, fontsize='small', loc='upper left', framealpha=0.8)
     return fig
 
