@@ -229,7 +229,7 @@ if prey_fitness_reader and predator_fitness_reader:
     ax8.set_xlabel("Time")
     ax8.set_ylabel("Fitness")
     ax8.set_xlim(time_vector[0], time_vector[-1])
-    FIGURES.append((fig8, 'moving_avg-avg-prey-fitness.png'))
+    FIGURES.append((fig8, 'moving-avg_avg-prey-fitness.png'))
 
     fig9, ax9 = plt.subplots()
     time_vector = make_time_vector(predator_fitness_data, dt, dump_stats_interval)
@@ -238,7 +238,7 @@ if prey_fitness_reader and predator_fitness_reader:
     ax9.set_xlabel("Time")
     ax9.set_ylabel("Fitness")
     ax9.set_xlim(time_vector[0], time_vector[-1])
-    FIGURES.append((fig9, 'moving_avg-avg-predator-fitness.png'))
+    FIGURES.append((fig9, 'moving-avg_avg-predator-fitness.png'))
 
 if prey_avg_weights_reader and predator_avg_weights_reader:
     print('Plotting average weights...')
