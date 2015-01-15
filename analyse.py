@@ -38,6 +38,10 @@ if len(sys.argv) > 2:
     if sys.argv[2] == '-s':
         SAVE = True
 
+STOP = None
+if len(sys.argv) > 3:
+    STOP = int(sys.argv[3])
+        
 FIGURES = [] # List of figures and filenames to save if necessary
 ANALYSIS = ""
     
@@ -106,7 +110,7 @@ def calculate_moving_std(data_vector, n):
             moving_std[i] = np.std(data_vector[i-n_half:i+n_half])
     return moving_std    
 
-def plot_weights(csv_reader, title, weight_labels):
+def plot_weights(csv_reader, title, weight_labels, stop):
     fig, ax = plt.subplots()
     ax.set_title(title)
     ax.set_xlabel('Time')
@@ -115,7 +119,9 @@ def plot_weights(csv_reader, title, weight_labels):
     for i in range(data.shape[0]):
         time_vector = make_time_vector(data[i,:], dt, dump_stats_interval)
         ax.plot(time_vector, data[i,:], label=weight_labels[i])
-    ax.set_xlim(time_vector[0], time_vector[-1])
+    if stop is None:
+        stop = time_vector[-1]    
+    ax.set_xlim(time_vector[0], stop)
     plt.legend(fancybox=True, fontsize='small', loc='upper left', framealpha=0.8)
     return fig
 
@@ -127,19 +133,22 @@ time_vector = make_time_vector(data[0], dt, dump_stats_interval)
 
 print('Plotting...')
 
+if not STOP:
+    STOP = time_vector[-1]
+
 fig1, ax1 = plt.subplots()
 ax1.plot(time_vector, data[0])
 ax1.set_title("Average distance to nearest neighbour")
 ax1.set_xlabel("Time")
 ax1.set_ylabel("Average distance")
-ax1.set_xlim(time_vector[0], time_vector[-1])
+ax1.set_xlim(time_vector[0], STOP)
 FIGURES.append((fig1, 'avg-nn-dist.png'))
 
 fig2, ax2 = plt.subplots()
 ax2.plot(time_vector, data[1])
 ax2.set_title("Average distance to centre of mass")
 ax2.set_xlabel("Time")
-ax2.set_xlim(time_vector[0], time_vector[-1])
+ax2.set_xlim(time_vector[0], STOP)
 FIGURES.append((fig2, 'avg-centroid-dist.png'))
 
 fig3, ax3 = plt.subplots()
@@ -147,7 +156,7 @@ ax3.plot(time_vector, data[2])
 ax3.set_title("Cosine of angular deviation")
 ax3.set_xlabel("Time")
 ax3.set_ylabel("Angular deviation")
-ax3.set_xlim(time_vector[0], time_vector[-1])
+ax3.set_xlim(time_vector[0], STOP)
 FIGURES.append((fig3, 'cosine-deviation.png'))
 
 if MOVING_AVG:
@@ -173,7 +182,7 @@ if MOVING_AVG:
     ax4.set_title("Average distance to nearest neighbour; moving average with window size %d" % (moving_average_window_size-1))
     ax4.set_xlabel("Time")
     ax4.set_ylabel("Average distance")
-    ax4.set_xlim(time_vector[0], time_vector[-1])
+    ax4.set_xlim(time_vector[0], STOP)
     FIGURES.append((fig4, 'moving-avg_avg-nn-dist.png'))
 
     fig5, ax5 = plt.subplots()
@@ -181,14 +190,14 @@ if MOVING_AVG:
     ax5.set_title("Cosine of angular deviation; moving average with window size %d" % (moving_average_window_size-1))
     ax5.set_xlabel("Time")
     ax5.set_ylabel("Angular deviation")
-    ax5.set_xlim(time_vector[0], time_vector[-1])
+    ax5.set_xlim(time_vector[0], STOP)
     FIGURES.append((fig5, 'moving-avg_cosine-deviation.png'))
 
     fig6, ax6 = plt.subplots()
     normed_dist_avg = nn_dist_moving_avg/nn_dist_moving_avg[0]
     combined_handle = ax6.plot(time_vector, normed_dist_avg, time_vector, ang_dev_moving_avg)
-    plt.legend(combined_handle, ['Normalised nn distance','Angular deviation'])
-    ax6.set_xlim(time_vector[0], time_vector[-1])
+    plt.legend(combined_handle, ['Normalised nn distance','Angular deviation'], fancybox=True, fontsize='small', framealpha=0.8)
+    ax6.set_xlim(time_vector[0], STOP)
     FIGURES.append((fig6, 'moving-avg_nn-dist-deviation-comparison.png'))
 
     rho, p = scipy.stats.pearsonr(normed_dist_avg, ang_dev_moving_avg)
@@ -200,14 +209,17 @@ try:
     ax7.plot(time_vector, data[3], label='Average age')
     ax7.plot(time_vector, data[4], label='Average life-span')
     ax7.set_xlabel('Time')
-    plt.legend(fancybox=True, loc='upper left', fontsize='small')
-    ax7.set_xlim(time_vector[0], time_vector[-1])
+    plt.legend(fancybox=True, loc='upper left', fontsize='small', framealpha=0.8)
+    ax7.set_xlim(time_vector[0], STOP)
     FIGURES.append((fig7, 'avg-prey-age-lifespan.png'))
 except IndexError: pass
     
 rho, p = scipy.stats.pearsonr(data[0]/np.max(data[0]), data[2])
 ANALYSIS += "Distance-deviation correlation (Spearman; full data): %g with p-value %f\n" % (rho, p)
 
+# Hack:
+if STOP == time_vector[-1]:
+    STOP = None
 
 if prey_fitness_reader and predator_fitness_reader:
     print('Reading fitness data...')
@@ -224,11 +236,14 @@ if prey_fitness_reader and predator_fitness_reader:
     
     fig8, ax8 = plt.subplots()
     time_vector = make_time_vector(prey_fitness_data, dt, dump_stats_interval)
+    if not STOP:
+        STOP = time_vector[-1]
+    
     ax8.plot(time_vector, prey_fitness_moving_avg)
     ax8.set_title("Prey fitness; moving average with window size %d" % (moving_average_window_size-1))
     ax8.set_xlabel("Time")
     ax8.set_ylabel("Fitness")
-    ax8.set_xlim(time_vector[0], time_vector[-1])
+    ax8.set_xlim(time_vector[0], STOP)
     FIGURES.append((fig8, 'moving-avg_avg-prey-fitness.png'))
 
     fig9, ax9 = plt.subplots()
@@ -237,14 +252,18 @@ if prey_fitness_reader and predator_fitness_reader:
     ax9.set_title("Predator fitness; moving average with window size %d" % (moving_average_window_size-1))
     ax9.set_xlabel("Time")
     ax9.set_ylabel("Fitness")
-    ax9.set_xlim(time_vector[0], time_vector[-1])
+    ax9.set_xlim(time_vector[0], STOP)
     FIGURES.append((fig9, 'moving-avg_avg-predator-fitness.png'))
+
+    # Hack:
+    if STOP == time_vector[-1]:
+        STOP = None
 
 if prey_avg_weights_reader and predator_avg_weights_reader:
     print('Plotting average weights...')
-    fig10 = plot_weights(prey_avg_weights_reader, 'Prey weights', prey_weight_labels)
+    fig10 = plot_weights(prey_avg_weights_reader, 'Prey weights', prey_weight_labels, STOP)
     FIGURES.append((fig10, 'prey-avg-weights.png'))
-    fig11 = plot_weights(predator_avg_weights_reader, 'Predator weights', predator_weight_labels)
+    fig11 = plot_weights(predator_avg_weights_reader, 'Predator weights', predator_weight_labels, STOP)
     FIGURES.append((fig11, 'predator-avg-weights.png'))
     
 print('Saving analysis...')
